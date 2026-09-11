@@ -459,7 +459,12 @@ export default function PaginaCadastro() {
   const hospitalNome = hospitalSelecionado ? hospitalSelecionado.nome : 'Hospital Geral'
 
   return (
-    <div className="min-h-[100dvh] flex flex-col items-center justify-center px-5 py-8 bg-[#F4F6FA] select-none">
+    <div 
+      style={{
+        background: 'radial-gradient(135% 520px at 50% -30px, #C3FFE7 0%, rgba(195, 255, 231, 0.5) 45%, rgba(195, 255, 231, 0.08) 75%, transparent 100%), #FAFAFC'
+      }}
+      className="min-h-[100dvh] flex flex-col items-center justify-center px-5 py-8 select-none"
+    >
       <div className="w-full max-w-sm space-y-5 animate-[fadeIn_0.3s_ease-out]">
         
         {/* Topo com Botão Voltar contextual e Título */}
@@ -501,16 +506,16 @@ export default function PaginaCadastro() {
         {/* Indicador de Etapas / Progress Bar */}
         <div className="space-y-1.5 px-1">
           <div className="flex items-center justify-between text-[11px] font-bold text-gray-500">
-            <span className={etapa === 1 ? 'text-[#246BFD]' : 'text-gray-400'}>
+            <span className={etapa === 1 ? 'text-[#17A592]' : 'text-gray-400'}>
               1. Identificação & Cargo
             </span>
-            <span className={etapa === 2 ? 'text-[#246BFD]' : 'text-gray-400'}>
+            <span className={etapa === 2 ? 'text-[#17A592]' : 'text-gray-400'}>
               2. Foto & Senha
             </span>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <div className={`h-1.5 rounded-full transition-all duration-300 ${etapa >= 1 ? 'bg-[#246BFD]' : 'bg-gray-200'}`} />
-            <div className={`h-1.5 rounded-full transition-all duration-300 ${etapa === 2 ? 'bg-[#246BFD]' : 'bg-gray-200'}`} />
+            <div className={`h-1.5 rounded-full transition-all duration-300 ${etapa >= 1 ? 'bg-[#17A592]' : 'bg-gray-200'}`} />
+            <div className={`h-1.5 rounded-full transition-all duration-300 ${etapa === 2 ? 'bg-[#17A592]' : 'bg-gray-200'}`} />
           </div>
         </div>
 
@@ -563,7 +568,7 @@ export default function PaginaCadastro() {
                   placeholder="Seu nome completo"
                   value={nomeCompleto}
                   onChange={(e) => setNomeCompleto(e.target.value)}
-                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]/10 transition-all"
+                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#17A592] focus:ring-1 focus:ring-[#17A592]/10 transition-all"
                 />
               </div>
 
@@ -578,7 +583,7 @@ export default function PaginaCadastro() {
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]/10 transition-all"
+                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#17A592] focus:ring-1 focus:ring-[#17A592]/10 transition-all"
                 />
               </div>
 
@@ -590,7 +595,7 @@ export default function PaginaCadastro() {
                 <select
                   value={hospitalId}
                   onChange={(e) => setHospitalId(e.target.value)}
-                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 outline-none focus:border-[#246BFD] transition-all cursor-pointer"
+                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 outline-none focus:border-[#17A592] transition-all cursor-pointer"
                 >
                   {hospitais.map(h => (
                     <option key={h.id} value={h.id}>
@@ -610,7 +615,7 @@ export default function PaginaCadastro() {
                   placeholder="Ex: COREN-BA 123456"
                   value={numeroConselho}
                   onChange={(e) => setNumeroConselho(e.target.value)}
-                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]/10 transition-all"
+                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#17A592] focus:ring-1 focus:ring-[#17A592]/10 transition-all"
                 />
               </div>
 
@@ -632,7 +637,7 @@ export default function PaginaCadastro() {
                         <div
                           className={`rounded-full p-0.5 aspect-square flex items-center justify-center transition-all duration-200 ${
                             ativo
-                              ? 'ring-2 ring-[#246BFD]/40 ring-offset-2 scale-105 shadow-[0_2px_8px_rgba(36,107,253,0.15)]'
+                              ? 'ring-2 ring-[#17A592]/40 ring-offset-2 scale-105 shadow-[0_2px_8px_rgba(23,165,146,0.2)]'
                               : 'opacity-60 hover:opacity-100 hover:scale-105 active:scale-95'
                           }`}
                         >
@@ -647,7 +652,7 @@ export default function PaginaCadastro() {
                         <div className="text-center leading-tight">
                           <span
                             className={`text-[11px] font-bold tracking-tight block transition-colors ${
-                              ativo ? 'text-[#246BFD]' : 'text-gray-700 group-hover:text-gray-900'
+                              ativo ? 'text-[#17A592]' : 'text-gray-700 group-hover:text-gray-900'
                             }`}
                           >
                             {r.label}
@@ -679,7 +684,7 @@ export default function PaginaCadastro() {
                     value={setorSelecionado}
                     onChange={(e) => setSetorSelecionado(e.target.value)}
                     required={perfilSelecionado === 'tecnico'}
-                    className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 outline-none focus:border-[#246BFD] transition-all cursor-pointer"
+                    className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 outline-none focus:border-[#17A592] transition-all cursor-pointer"
                   >
                     <option value="" disabled>Selecione o setor...</option>
                     {TODOS_SETORES.map(s => (
@@ -695,7 +700,7 @@ export default function PaginaCadastro() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full h-12 rounded-2xl bg-[#246BFD] text-white font-bold text-sm shadow-[0_4px_14px_rgba(36,107,253,0.3)] hover:bg-[#1a5ce6] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full h-12 rounded-2xl bg-[#17A592] text-[#EFF7F2] font-bold text-sm shadow-[0_4px_14px_rgba(23,165,146,0.35)] hover:bg-[#138e7e] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Continuar</span>
                   <ArrowRight className="w-4 h-4" />
@@ -727,7 +732,7 @@ export default function PaginaCadastro() {
                   {fotoPreview ? (
                     // Caso tenha enviado foto personalizada
                     <div className="relative">
-                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#246BFD] shadow-md">
+                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#17A592] shadow-md">
                         <img
                           src={fotoPreview}
                           alt="Sua foto de perfil"
@@ -750,14 +755,14 @@ export default function PaginaCadastro() {
                       className="relative cursor-pointer group"
                       title="Toque para abrir a câmera ou use os botões abaixo"
                     >
-                      <div className="w-20 h-20 rounded-full p-0.5 border-2 border-dashed border-gray-300 group-hover:border-[#246BFD] transition-colors flex items-center justify-center overflow-hidden bg-white shadow-xs">
+                      <div className="w-20 h-20 rounded-full p-0.5 border-2 border-dashed border-gray-300 group-hover:border-[#17A592] transition-colors flex items-center justify-center overflow-hidden bg-white shadow-xs">
                         <img
                           src={roleAtual.avatarUrl}
                           alt={roleAtual.label}
                           className="w-full h-full object-cover rounded-full transition-transform group-hover:scale-105"
                         />
                       </div>
-                      <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#246BFD] text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
+                      <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-[#17A592] text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
                         <Camera className="w-3.5 h-3.5" />
                       </div>
                     </div>
@@ -787,18 +792,18 @@ export default function PaginaCadastro() {
                     <button
                       type="button"
                       onClick={abrirCamera}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-gray-200 text-[11px] font-bold text-gray-700 hover:text-[#246BFD] hover:border-[#246BFD]/40 shadow-xs active:scale-95 transition-all cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-gray-200 text-[11px] font-bold text-gray-700 hover:text-[#17A592] hover:border-[#17A592]/40 shadow-xs active:scale-95 transition-all cursor-pointer"
                     >
-                      <Camera className="w-3.5 h-3.5 text-[#246BFD]" />
+                      <Camera className="w-3.5 h-3.5 text-[#17A592]" />
                       <span>Câmera</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => galeriaInputRef.current?.click()}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-gray-200 text-[11px] font-bold text-gray-700 hover:text-[#246BFD] hover:border-[#246BFD]/40 shadow-xs active:scale-95 transition-all cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white border border-gray-200 text-[11px] font-bold text-gray-700 hover:text-[#17A592] hover:border-[#17A592]/40 shadow-xs active:scale-95 transition-all cursor-pointer"
                     >
-                      <ImageIcon className="w-3.5 h-3.5 text-[#246BFD]" />
+                      <ImageIcon className="w-3.5 h-3.5 text-[#17A592]" />
                       <span>Galeria</span>
                     </button>
 
@@ -856,7 +861,7 @@ export default function PaginaCadastro() {
                   placeholder="••••••••"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]/10 transition-all"
+                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#17A592] focus:ring-1 focus:ring-[#17A592]/10 transition-all"
                 />
               </div>
 
@@ -871,7 +876,7 @@ export default function PaginaCadastro() {
                   placeholder="••••••••"
                   value={confirmarSenha}
                   onChange={(e) => setConfirmarSenha(e.target.value)}
-                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]/10 transition-all"
+                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#17A592] focus:ring-1 focus:ring-[#17A592]/10 transition-all"
                 />
               </div>
 

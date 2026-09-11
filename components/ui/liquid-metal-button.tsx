@@ -19,6 +19,8 @@ export interface LiquidMetalButtonProps {
   larguraTotal?: boolean;
   fullWidth?: boolean;
   tamanho?: "sm" | "md" | "lg";
+  gradient?: string;
+  corTexto?: string;
 }
 
 export function LiquidMetalButton({
@@ -35,6 +37,8 @@ export function LiquidMetalButton({
   larguraTotal = false,
   fullWidth = false,
   tamanho = "md",
+  gradient = "linear-gradient(180deg, #1FBBA4 0%, #17A592 50%, #0E7567 100%)",
+  corTexto = "#EFF7F2",
 }: LiquidMetalButtonProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
@@ -125,8 +129,8 @@ export function LiquidMetalButton({
             {
               u_repetition: 2.8,
               u_softness: 0.5,
-              u_shiftRed: 0.25,
-              u_shiftBlue: 0.9, // Azul vivo, luminoso e limpo
+              u_shiftRed: 0.1,
+              u_shiftBlue: 0.6, // Metal líquido com reflexo esmeralda/teal
               u_distortion: 0.03,
               u_contour: 0.15,
               u_angle: 45,
@@ -240,20 +244,20 @@ export function LiquidMetalButton({
             }}
           >
             {carregando ? (
-              <div className="flex items-center justify-center gap-2 text-white">
-                <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+              <div className="flex items-center justify-center gap-2" style={{ color: corTexto }}>
+                <svg className="animate-spin h-4 w-4" style={{ color: corTexto }} viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                <span className="text-xs font-bold text-white tracking-wide">Carregando...</span>
+                <span className="text-xs font-bold tracking-wide" style={{ color: corTexto }}>Carregando...</span>
               </div>
             ) : viewMode === "icon" ? (
               iconeFinal || (
                 <Sparkles
                   size={18}
                   style={{
-                    color: "#FFFFFF",
-                    filter: "drop-shadow(0px 1px 2px rgba(20, 60, 160, 0.7))",
+                    color: corTexto,
+                    filter: "drop-shadow(0px 1px 2px rgba(13, 100, 88, 0.45))",
                     transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
                     transform: "scale(1)",
                   }}
@@ -262,17 +266,17 @@ export function LiquidMetalButton({
             ) : (
               <div className="flex items-center justify-center gap-2 px-3">
                 {iconeFinal && (
-                  <span className="text-white shrink-0 drop-shadow-[0_1px_2px_rgba(20,60,160,0.6)]">
+                  <span className="shrink-0 drop-shadow-[0_1px_2px_rgba(13,100,88,0.45)]" style={{ color: corTexto }}>
                     {iconeFinal}
                   </span>
                 )}
                 <span
                   style={{
                     fontSize: tamanho === "sm" ? "12px" : tamanho === "lg" ? "15px" : "13.5px",
-                    color: "#FFFFFF",
+                    color: corTexto,
                     fontWeight: 700,
                     letterSpacing: "-0.01em",
-                    textShadow: "0px 1px 2px rgba(10, 45, 140, 0.8), 0px 0px 10px rgba(255, 255, 255, 0.3)",
+                    textShadow: "0px 1px 2px rgba(13, 100, 88, 0.35)",
                     transition: "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
                     transform: "scale(1)",
                     whiteSpace: "nowrap",
@@ -305,11 +309,11 @@ export function LiquidMetalButton({
                 height: `${alturaInner}px`,
                 margin: "2px auto",
                 borderRadius: "100px",
-                background: "linear-gradient(180deg, #3B82F6 0%, #2563EB 55%, #1D4ED8 100%)",
-                border: "1.5px solid rgba(255, 255, 255, 0.55)",
+                background: gradient,
+                border: "1.5px solid rgba(255, 255, 255, 0.65)",
                 boxShadow: isPressed
-                  ? "inset 0px 2px 4px rgba(15, 23, 42, 0.4), inset 0px 1px 2px rgba(0, 0, 0, 0.3)"
-                  : "inset 0px 1px 2px rgba(255, 255, 255, 0.6), 0px 2px 8px rgba(37, 99, 235, 0.3)",
+                  ? "inset 0px 2px 4px rgba(13, 100, 88, 0.4), inset 0px 1px 2px rgba(0, 0, 0, 0.2)"
+                  : "inset 0px 1px 2px rgba(255, 255, 255, 0.7), 0px 2px 10px rgba(23, 165, 146, 0.35)",
                 transition:
                   "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.4s ease, box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
@@ -337,10 +341,10 @@ export function LiquidMetalButton({
                 width: "100%",
                 borderRadius: "100px",
                 boxShadow: isPressed
-                  ? "0px 0px 0px 1px rgba(37, 99, 235, 0.6), 0px 2px 4px 0px rgba(37, 99, 235, 0.2)"
+                  ? "0px 0px 0px 1px rgba(23, 165, 146, 0.6), 0px 2px 4px 0px rgba(23, 165, 146, 0.2)"
                   : isHovered
-                    ? "0px 0px 0px 1px rgba(96, 165, 250, 0.7), 0px 10px 24px 0px rgba(37, 99, 235, 0.38), 0px 4px 8px 0px rgba(59, 130, 246, 0.25)"
-                    : "0px 0px 0px 1px rgba(59, 130, 246, 0.5), 0px 8px 20px 0px rgba(37, 99, 235, 0.28), 0px 2px 6px 0px rgba(59, 130, 246, 0.18)",
+                    ? "0px 0px 0px 1px rgba(70, 217, 170, 0.7), 0px 10px 24px 0px rgba(23, 165, 146, 0.38), 0px 4px 8px 0px rgba(70, 217, 170, 0.25)"
+                    : "0px 0px 0px 1px rgba(23, 165, 146, 0.4), 0px 8px 20px 0px rgba(23, 165, 146, 0.25), 0px 2px 6px 0px rgba(70, 217, 170, 0.15)",
                 transition:
                   "all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.4s ease, box-shadow 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
                 background: "transparent",
@@ -403,7 +407,7 @@ export function LiquidMetalButton({
                   height: "20px",
                   borderRadius: "50%",
                   background:
-                    "radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(147, 197, 253, 0) 70%)",
+                    "radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(195, 255, 231, 0) 70%)",
                   pointerEvents: "none",
                   animation: "ripple-animation-clean-blue 0.6s ease-out",
                 }}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import CommandMenu from '@/components/ui/command-menu'
 import { ChatIA } from '@/components/coordenador/ChatIA'
@@ -138,7 +139,24 @@ export default function LayoutCoordenador({
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/coordenador" className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight hover:opacity-80 transition-opacity font-brand flex items-center gap-2.5">
-              <span>Primus</span>
+              <div className="relative inline-flex items-center overflow-hidden rounded-xl p-0.5 select-none">
+                <Image
+                  src="/idvisual/logo.webp?v=2"
+                  alt="Primus"
+                  width={155}
+                  height={35}
+                  unoptimized
+                  priority
+                  className="h-8 sm:h-9 w-auto object-contain relative z-10"
+                />
+                <div 
+                  className="pointer-events-none absolute inset-0 z-20 animate-logo-shimmer"
+                  style={{
+                    background: 'linear-gradient(105deg, transparent 20%, rgba(195, 255, 231, 0.25) 38%, rgba(195, 255, 231, 0.95) 50%, rgba(195, 255, 231, 0.25) 62%, transparent 80%)',
+                    mixBlendMode: 'screen',
+                  }}
+                />
+              </div>
               <span className="hidden sm:inline-flex text-[11px] font-extrabold text-purple-700 bg-purple-100/80 px-2.5 py-0.5 rounded-full border border-purple-200/60 uppercase tracking-wider">
                 Coordenação
               </span>

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import CommandMenu from '@/components/ui/command-menu'
 import { criarClienteSupabase } from '@/lib/supabase/client'
@@ -102,8 +103,25 @@ export default function LayoutEngenharia({
     <div className="min-h-[100dvh] flex flex-col bg-[#F4F6FA] max-w-md mx-auto relative">
       {/* Header no tom do background cinza */}
       <header className="relative z-50 bg-[#F4F6FA] px-4 pt-4 pb-3 flex items-center justify-between border-b border-gray-200/50">
-        <Link href="/engenharia" className="text-xl font-bold text-gray-900 tracking-tight hover:opacity-80 transition-opacity font-brand">
-          Primus
+        <Link href="/engenharia" className="hover:opacity-80 transition-opacity flex items-center shrink-0">
+          <div className="relative inline-flex items-center overflow-hidden rounded-xl p-0.5 select-none">
+            <Image
+              src="/idvisual/logo.webp?v=2"
+              alt="Primus"
+              width={155}
+              height={35}
+              unoptimized
+              priority
+              className="h-8 sm:h-9 w-auto object-contain relative z-10"
+            />
+            <div 
+              className="pointer-events-none absolute inset-0 z-20 animate-logo-shimmer"
+              style={{
+                background: 'linear-gradient(105deg, transparent 20%, rgba(195, 255, 231, 0.25) 38%, rgba(195, 255, 231, 0.95) 50%, rgba(195, 255, 231, 0.25) 62%, transparent 80%)',
+                mixBlendMode: 'screen',
+              }}
+            />
+          </div>
         </Link>
         
         {/* CommandMenu Interativo Compacto */}

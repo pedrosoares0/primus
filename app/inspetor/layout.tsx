@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import CommandMenu from '@/components/ui/command-menu'
 import { criarClienteSupabase } from '@/lib/supabase/client'
@@ -139,11 +140,39 @@ export default function LayoutInspetor({
   const isGradientPage = pathname === '/inspetor'
 
   return (
-    <div className={`min-h-[100dvh] flex flex-col ${isGradientPage ? 'bg-gradient-to-b from-[#79C7FF] via-[#79C7FF]/5 to-[#F4F6FA] to-[50%]' : 'bg-[#F4F6FA]'} max-w-md mx-auto relative`}>
+    <div
+      style={
+        isGradientPage
+          ? {
+              background:
+                'radial-gradient(135% 520px at 50% -30px, #C3FFE7 0%, rgba(195, 255, 231, 0.5) 45%, rgba(195, 255, 231, 0.08) 75%, transparent 100%), #F4F6FA',
+            }
+          : undefined
+      }
+      className={`min-h-[100dvh] flex flex-col ${!isGradientPage ? 'bg-[#F4F6FA]' : ''} max-w-md mx-auto relative`}
+    >
       {/* Header no tom do background */}
       <header className={`relative z-50 px-4 pt-4 pb-3 flex items-center justify-between transition-all duration-200 ${isGradientPage ? 'bg-transparent' : 'bg-[#F4F6FA] border-b border-slate-200/70'}`}>
-        <Link href="/inspetor" className={`text-xl font-bold tracking-tight hover:opacity-80 transition-opacity font-brand ${isGradientPage ? 'text-white' : 'text-gray-900'}`}>
-          Primus
+        <Link href="/inspetor" className="hover:opacity-80 transition-opacity flex items-center shrink-0">
+          <div className="relative inline-flex items-center overflow-hidden rounded-xl p-0.5 select-none">
+            <Image
+              src="/idvisual/logo.webp?v=2"
+              alt="Primus"
+              width={155}
+              height={35}
+              unoptimized
+              priority
+              className="h-8 sm:h-9 w-auto object-contain relative z-10"
+            />
+            {/* Efeito com a cor do verde claro do gradiente correndo suave pela logo */}
+            <div 
+              className="pointer-events-none absolute inset-0 z-20 animate-logo-shimmer"
+              style={{
+                background: 'linear-gradient(105deg, transparent 20%, rgba(195, 255, 231, 0.25) 38%, rgba(195, 255, 231, 0.95) 50%, rgba(195, 255, 231, 0.25) 62%, transparent 80%)',
+                mixBlendMode: 'screen',
+              }}
+            />
+          </div>
         </Link>
         
         {/* CommandMenu Interativo Compacto */}
@@ -154,8 +183,8 @@ export default function LayoutInspetor({
           status={[
             'Inspetor(a)',
             'Hosp. Piem. Paraguaçu',
-            <span key="online" className="flex items-center gap-1 text-blue-600 font-semibold">
-              <span className="size-1.5 rounded-full bg-blue-500 animate-pulse" />
+            <span key="online" className="flex items-center gap-1 text-[#17A592] font-semibold">
+              <span className="size-1.5 rounded-full bg-[#17A592] animate-pulse" />
               Pronto para Ronda
             </span>
           ]}
@@ -227,7 +256,7 @@ export default function LayoutInspetor({
                     'flex-1 flex flex-col items-center justify-center py-1.5 px-3 rounded-full cursor-pointer',
                     'transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-[0.92]',
                     ativo
-                      ? 'bg-gradient-to-b from-[#246BFD]/16 to-[#246BFD]/8 text-[#246BFD] shadow-[0_3px_10px_rgba(36,107,253,0.15),inset_0_1px_1.5px_rgba(255,255,255,0.8),inset_0_0_0_1px_rgba(36,107,253,0.18)] font-black'
+                      ? 'bg-gradient-to-b from-[#17A592]/20 to-[#17A592]/10 text-[#17A592] shadow-[0_3px_10px_rgba(23,165,146,0.18),inset_0_1px_1.5px_rgba(255,255,255,0.8),inset_0_0_0_1px_rgba(23,165,146,0.22)] font-black'
                       : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100/30',
                   ].join(' ')}
                 >

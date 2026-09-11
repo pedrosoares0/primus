@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { X, Eye, EyeOff } from 'lucide-react'
 import { Botao } from '@/components/ui/Botao'
@@ -191,17 +192,35 @@ function FormularioLogin() {
   }
 
   return (
-    <div className="min-h-[100dvh] flex flex-col items-center justify-center px-5 py-8 bg-gradient-to-b from-[#79C7FF] via-[#79C7FF]/5 to-[#FAFAFC] to-[50%] select-none">
+    <div 
+      style={{
+        background: 'radial-gradient(135% 520px at 50% -30px, #C3FFE7 0%, rgba(195, 255, 231, 0.5) 45%, rgba(195, 255, 231, 0.08) 75%, transparent 100%), #FAFAFC'
+      }}
+      className="min-h-[100dvh] flex flex-col items-center justify-center px-5 py-8 select-none"
+    >
       <div className="w-full max-w-sm space-y-8 animate-[fadeIn_0.3s_ease-out]">
         
-        {/* Cabeçalho de Identidade (Sem mascote blop) */}
-        <div className="text-center">
-          <h1 className="text-3xl font-extrabold text-white tracking-tight font-brand">
-            Primus
-          </h1>
-          <p className="text-sm text-white/80 font-semibold mt-1.5 leading-snug">
-            Plataforma de Prontidão Operacional <br /> do Centro Cirúrgico
-          </p>
+        {/* Cabeçalho de Identidade */}
+        <div className="text-center flex flex-col items-center">
+          <div className="relative inline-flex items-center justify-center overflow-hidden rounded-2xl p-1 select-none">
+            <Image
+              src="/idvisual/logo.webp?v=2"
+              alt="Primus"
+              width={200}
+              height={45}
+              unoptimized
+              priority
+              className="h-12 w-auto object-contain relative z-10"
+            />
+            {/* Efeito com a cor do verde claro do gradiente correndo suave pela logo */}
+            <div 
+              className="pointer-events-none absolute inset-0 z-20 animate-logo-shimmer"
+              style={{
+                background: 'linear-gradient(105deg, transparent 20%, rgba(195, 255, 231, 0.25) 38%, rgba(195, 255, 231, 0.95) 50%, rgba(195, 255, 231, 0.25) 62%, transparent 80%)',
+                mixBlendMode: 'screen',
+              }}
+            />
+          </div>
 
           {/* Botão CREDENCIAIS */}
           <button
@@ -253,7 +272,7 @@ function FormularioLogin() {
                       <div
                         className={`rounded-full p-0.5 aspect-square flex items-center justify-center transition-all duration-200 ${
                           ativo
-                            ? 'ring-2 ring-[#246BFD]/30 ring-offset-2 scale-105 shadow-[0_2px_8px_rgba(36,107,253,0.15)]'
+                            ? 'ring-2 ring-[#17A592]/30 ring-offset-2 scale-105 shadow-[0_2px_8px_rgba(23,165,146,0.15)]'
                             : 'opacity-60 hover:opacity-100 hover:scale-105 active:scale-95'
                         }`}
                       >
@@ -267,7 +286,7 @@ function FormularioLogin() {
                       </div>
                       <span
                         className={`text-[10px] font-bold tracking-tight text-center whitespace-nowrap transition-colors ${
-                          ativo ? 'text-[#246BFD]' : 'text-gray-400 group-hover:text-gray-600'
+                          ativo ? 'text-[#17A592]' : 'text-gray-400 group-hover:text-gray-600'
                         }`}
                       >
                         {labelCurto[p.valor]}
@@ -302,7 +321,7 @@ function FormularioLogin() {
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl pl-4 pr-11 py-3.5 text-[16px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]/10 transition-all"
+                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl pl-4 pr-11 py-3.5 text-[16px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#17A592] focus:ring-1 focus:ring-[#17A592]/10 transition-all"
                 />
                 {email.length > 0 && (
                   <button
@@ -330,7 +349,7 @@ function FormularioLogin() {
                   placeholder="••••••••"
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
-                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl pl-4 pr-11 py-3.5 text-[16px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]/10 transition-all"
+                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl pl-4 pr-11 py-3.5 text-[16px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#17A592] focus:ring-1 focus:ring-[#17A592]/10 transition-all"
                 />
                 <button
                   type="button"
@@ -340,7 +359,7 @@ function FormularioLogin() {
                   title={mostrarSenha ? 'Ocultar senha' : 'Ver senha'}
                 >
                   {mostrarSenha ? (
-                    <EyeOff className="w-4 h-4 text-[#246BFD]" />
+                    <EyeOff className="w-4 h-4 text-[#17A592]" />
                   ) : (
                     <Eye className="w-4 h-4" />
                   )}
@@ -355,7 +374,7 @@ function FormularioLogin() {
                   type="checkbox"
                   checked={manterConectado}
                   onChange={(e) => setManterConectado(e.target.checked)}
-                  className="w-4 h-4 rounded-md border-gray-300 text-[#246BFD] focus:ring-[#246BFD]/20 accent-[#246BFD] cursor-pointer"
+                  className="w-4 h-4 rounded-md border-gray-300 text-[#17A592] focus:ring-[#17A592]/20 accent-[#17A592] cursor-pointer"
                 />
                 <span className="text-xs font-semibold text-gray-500 group-hover:text-gray-800 transition-colors">
                   Me manter conectado
@@ -378,7 +397,7 @@ function FormularioLogin() {
             <div className="text-center pt-1.5">
               <Link
                 href="/cadastro"
-                className="text-xs font-bold text-[#246BFD] hover:underline"
+                className="text-xs font-bold text-[#17A592] hover:underline"
               >
                 Não tem uma conta? Cadastre-se
               </Link>

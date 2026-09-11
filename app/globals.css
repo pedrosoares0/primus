@@ -26,9 +26,9 @@
   --color-superficie-secundaria: #F8FAFC;
 
   /* Cores principais */
-  --color-primaria: #246BFD;
-  --color-primaria-clara: #528BFF;
-  --color-primaria-escura: #1253F6;
+  --color-primaria: #17A592;
+  --color-primaria-clara: #2ED3B7;
+  --color-primaria-escura: #0F766E;
 
   /* Texto */
   --color-texto: #111827;
@@ -139,4 +139,30 @@ a:active,
 
 .animate-fadeIn {
   animation: fadeIn 0.35s ease-out both;
+}
+
+@keyframes logoShimmer {
+  0% {
+    transform: translateX(-160%) skewX(-20deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  48% {
+    transform: translateX(180%) skewX(-20deg);
+    opacity: 1;
+  }
+  54% {
+    opacity: 0;
+    transform: translateX(180%) skewX(-20deg);
+  }
+  100% {
+    transform: translateX(180%) skewX(-20deg);
+    opacity: 0;
+  }
+}
+
+.animate-logo-shimmer {
+  animation: logoShimmer 7s cubic-bezier(0.35, 0, 0.25, 1) infinite;
 }

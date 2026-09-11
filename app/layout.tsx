@@ -7,9 +7,9 @@ export const metadata: Metadata = {
   description:
     "Plataforma de prontidão operacional do centro cirúrgico. Verifique se ativos, salas e centros estão prontos para operar com segurança.",
   icons: {
-    icon: "/favicon.webp",
-    shortcut: "/favicon.webp",
-    apple: "/favicon.webp",
+    icon: "/idvisual/icon.webp?v=2",
+    shortcut: "/idvisual/icon.webp?v=2",
+    apple: "/idvisual/icon.webp?v=2",
   },
 };
 
@@ -31,8 +31,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Space+Grotesk:wght@600;700&display=swap"
           rel="stylesheet"
         />
-        <link rel="icon" type="image/webp" href="/favicon.webp" />
-        <link rel="apple-touch-icon" href="/favicon.webp" />
+        <link rel="icon" type="image/webp" href="/idvisual/icon.webp?v=2" />
+        <link rel="apple-touch-icon" href="/idvisual/icon.webp?v=2" />
       </head>
       <body className="bg-fundo text-texto antialiased">
         <LenisProvider>{children}</LenisProvider>
