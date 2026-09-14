@@ -154,7 +154,7 @@ export default function LayoutInspetor({
       {/* Header no tom do background */}
       <header className={`relative z-50 px-4 pt-4 pb-3 flex items-center justify-between transition-all duration-200 ${isGradientPage ? 'bg-transparent' : 'bg-[#F4F6FA] border-b border-slate-200/70'}`}>
         <Link href="/inspetor" className="hover:opacity-80 transition-opacity flex items-center shrink-0">
-          <div className="relative inline-flex items-center overflow-hidden rounded-xl p-0.5 select-none">
+          <div className="select-none">
             <Image
               src="/idvisual/logo.webp?v=2"
               alt="Primus"
@@ -162,15 +162,7 @@ export default function LayoutInspetor({
               height={35}
               unoptimized
               priority
-              className="h-8 sm:h-9 w-auto object-contain relative z-10"
-            />
-            {/* Efeito com a cor do verde claro do gradiente correndo suave pela logo */}
-            <div 
-              className="pointer-events-none absolute inset-0 z-20 animate-logo-shimmer"
-              style={{
-                background: 'linear-gradient(105deg, transparent 20%, rgba(195, 255, 231, 0.25) 38%, rgba(195, 255, 231, 0.95) 50%, rgba(195, 255, 231, 0.25) 62%, transparent 80%)',
-                mixBlendMode: 'screen',
-              }}
+              className="h-8 sm:h-9 w-auto object-contain"
             />
           </div>
         </Link>
