@@ -181,9 +181,9 @@ function FormularioLogin() {
 
       const nextParam = searchParams?.get('next')
       if (nextParam) {
-        router.push(nextParam)
+        router.replace(nextParam)
       } else {
-        router.push(rotas[profile.perfil] || '/inspetor')
+        router.replace(rotas[profile.perfil] || '/inspetor')
       }
     } catch (err: any) {
       console.error(err)

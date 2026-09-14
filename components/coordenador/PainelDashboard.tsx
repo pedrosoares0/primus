@@ -7,10 +7,12 @@ import { criarClienteSupabase } from '@/lib/supabase/client'
 import { dadosCache } from '@/lib/cache/dadosCache'
 import { CardsMetricasAtivos, type ContadoresAtivos } from '@/components/coordenador/CardsMetricasAtivos'
 
-type PeriodoFiltro = '7d' | '15d' | '30d'
+export type PeriodoFiltro = '7d' | '15d' | '30d'
 
-interface PainelDashboardProps {
+export interface PainelDashboardProps {
   hospitalId: string
+  periodo?: PeriodoFiltro
+  onPeriodoChange?: (periodo: PeriodoFiltro) => void
 }
 
 interface InspetorRanking {
@@ -53,11 +55,21 @@ interface DadosDashboard {
   // NCs por criticidade
   ncsPorCriticidade: { critico: number; importante: number; informativo: number }
   // Rondas por dia
-  rondasPorDia: { data: string; diaSemana: string; diaNumero: string; quantidade: number }[]
+  rondasPorDia: {
+    data: string
+    diaSemana: string
+    diaNumero: string
+    mesCurto: string
+    dataFormatada: string
+    quantidade: number
+  }[]
   // Rondas recentes
   rondasRecentes: {
     id: string
     inspetorNome: string
+    inspetorPerfil?: string
+    inspetorAvatarUrl?: string | null
+    inspetorSetor?: string | null
     nomeAtivo: string
     localNome: string
     centroCirurgicoNome: string
@@ -67,6 +79,7 @@ interface DadosDashboard {
 }
 
 const DIAS_SEMANA_CURTO = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+const MESES_CURTO = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
 function formatarDataChaveLocal(d: Date): string {
   const ano = d.getFullYear()
@@ -95,9 +108,21 @@ function formatarDuracao(ms: number): string {
   return `${minutos}min`
 }
 
-function gerarDiasNoPeriodo(periodo: PeriodoFiltro): { data: string; diaSemana: string; diaNumero: string }[] {
+function gerarDiasNoPeriodo(periodo: PeriodoFiltro): {
+  data: string
+  diaSemana: string
+  diaNumero: string
+  mesCurto: string
+  dataFormatada: string
+}[] {
   const dias = periodo === '7d' ? 7 : periodo === '15d' ? 15 : 30
-  const resultado: { data: string; diaSemana: string; diaNumero: string }[] = []
+  const resultado: {
+    data: string
+    diaSemana: string
+    diaNumero: string
+    mesCurto: string
+    dataFormatada: string
+  }[] = []
   const agora = new Date()
   for (let i = dias - 1; i >= 0; i--) {
     const d = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - i)
@@ -105,6 +130,8 @@ function gerarDiasNoPeriodo(periodo: PeriodoFiltro): { data: string; diaSemana: 
       data: formatarDataChaveLocal(d),
       diaSemana: DIAS_SEMANA_CURTO[d.getDay()],
       diaNumero: String(d.getDate()).padStart(2, '0'),
+      mesCurto: MESES_CURTO[d.getMonth()],
+      dataFormatada: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
     })
   }
   return resultado
@@ -280,9 +307,14 @@ function ColunaPodio({
   )
 }
 
-export function PainelDashboard({ hospitalId }: PainelDashboardProps) {
+export function PainelDashboard({ hospitalId, periodo: periodoProp, onPeriodoChange }: PainelDashboardProps) {
   const router = useRouter()
-  const [periodo, setPeriodo] = useState<PeriodoFiltro>('7d')
+  const [periodoInterno, setPeriodoInterno] = useState<PeriodoFiltro>('7d')
+  const periodo = periodoProp ?? periodoInterno
+  const setPeriodo = (p: PeriodoFiltro) => {
+    setPeriodoInterno(p)
+    onPeriodoChange?.(p)
+  }
   const cacheKey = `coordenador_dashboard_v3_${hospitalId}_${periodo}`
   const [dados, setDados] = useState<DadosDashboard | null>(() => dadosCache.get<DadosDashboard>(cacheKey))
   const [carregando, setCarregando] = useState(() => !dadosCache.get(cacheKey))
@@ -378,7 +410,7 @@ export function PainelDashboard({ hospitalId }: PainelDashboardProps) {
             .eq('hospital_id', hospitalId),
         ])
 
-        const mapaUsuarios = new Map<string, { nome: string; perfil: string; avatarUrl?: string }>()
+        const mapaUsuarios = new Map<string, { nome: string; perfil: string; avatarUrl?: string; setor?: string }>()
         let todasExecucoes: any[] = execsRes.data || []
 
         // Mapear usuários das execuções
@@ -388,6 +420,7 @@ export function PainelDashboard({ hospitalId }: PainelDashboardProps) {
               nome: formatarNome(r.usuarios),
               perfil: r.usuarios.perfil || 'inspetor',
               avatarUrl: r.usuarios.avatar_url,
+              setor: r.usuarios.setor,
             })
           }
         })
@@ -399,6 +432,7 @@ export function PainelDashboard({ hospitalId }: PainelDashboardProps) {
               nome: formatarNome(u),
               perfil: u.perfil || 'inspetor',
               avatarUrl: u.avatar_url,
+              setor: u.setor,
             }
             if (u.id) mapaUsuarios.set(u.id, info)
             if (u.auth_user_id) mapaUsuarios.set(u.auth_user_id, info)
@@ -488,12 +522,12 @@ export function PainelDashboard({ hospitalId }: PainelDashboardProps) {
           .sort((a, b) => b.totalRondas - a.totalRondas || b.totalConformes - a.totalConformes)
           .slice(0, 3)
 
-        // 10. Rondas recentes (últimas 5)
+        // 10. Rondas recentes (estritamente últimas 3)
         const rondasOrdenadas = [...(todasExecucoes || [])].sort((a: any, b: any) => {
           const dtA = new Date(a.finalizado_em || a.iniciado_em || 0).getTime()
           const dtB = new Date(b.finalizado_em || b.iniciado_em || 0).getTime()
           return dtB - dtA
-        }).slice(0, 5)
+        }).slice(0, 3)
 
         // --- Processar dados ---
 
@@ -577,13 +611,16 @@ export function PainelDashboard({ hospitalId }: PainelDashboardProps) {
           quantidade: contagemPorDia.get(d.data) || 0,
         }))
 
-        // Rondas recentes formatadas
+        // Rondas recentes formatadas com perfil e avatar do usuário
         const rondasRecentesFormatadas = rondasOrdenadas.map((r: any) => {
           const uInfo = mapaUsuarios.get(r.usuario_id)
           const nomeInsp = uInfo?.nome || (r.usuarios ? formatarNome(r.usuarios) : null) || 'Inspetor'
           return {
             id: r.id,
             inspetorNome: nomeInsp,
+            inspetorPerfil: uInfo?.perfil || r.usuarios?.perfil || 'inspetor',
+            inspetorAvatarUrl: uInfo?.avatarUrl || r.usuarios?.avatar_url || null,
+            inspetorSetor: uInfo?.setor || r.usuarios?.setor || null,
             nomeAtivo: r.ativos?.nome || 'Ativo',
             localNome: r.ativos?.locais?.nome || 'Local',
             centroCirurgicoNome: r.ativos?.locais?.centros_cirurgicos?.nome || 'Centro Cirúrgico',
@@ -710,34 +747,13 @@ export function PainelDashboard({ hospitalId }: PainelDashboardProps) {
         clicavel={false}
       />
 
-      {/* Barra de Filtro Temporal e Resumo Rápido */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-2 sm:p-2.5 rounded-2xl border border-slate-200/70 shadow-2xs">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pl-2">Período:</span>
-          {/* Filtro Temporal */}
-          <div className="bg-[#F1F3F6] p-0.5 rounded-full flex gap-1 select-none">
-            {([
-              { id: '7d', label: '7 dias' },
-              { id: '15d', label: '15 dias' },
-              { id: '30d', label: '30 dias' },
-            ] as { id: PeriodoFiltro; label: string }[]).map((opt) => {
-              const ativo = periodo === opt.id
-              return (
-                <button
-                  key={opt.id}
-                  onClick={() => setPeriodo(opt.id)}
-                  className={[
-                    'py-1.5 px-3 text-[11px] font-bold tracking-tight rounded-full transition-all duration-200 cursor-pointer active:scale-95 select-none',
-                    ativo
-                      ? 'bg-white text-slate-900 shadow-xs'
-                      : 'text-gray-500 hover:text-slate-900',
-                  ].join(' ')}
-                >
-                  {opt.label}
-                </button>
-              )
-            })}
-          </div>
+      {/* Barra de Resumo Rápido no Topo */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200/70 shadow-2xs">
+        <div className="flex items-center gap-2 pl-1">
+          <span className="text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">Período ativo:</span>
+          <span className="text-xs font-black text-slate-800 bg-slate-100 px-3 py-1 rounded-full border border-slate-200/60">
+            {periodo === '7d' ? 'Últimos 7 dias' : periodo === '15d' ? 'Últimos 15 dias' : 'Últimos 30 dias'}
+          </span>
         </div>
 
         <div className="flex items-center gap-2 pr-1">
@@ -760,89 +776,11 @@ export function PainelDashboard({ hospitalId }: PainelDashboardProps) {
            ══════════════════════════════════════════════════ */}
         <div className="lg:col-span-7 space-y-5">
           
-          {/* PAINEL DE ANÉIS LIMPO & MODERNO (APPLE HEALTH STYLE) */}
-          <div className="bg-white rounded-[28px] p-5 sm:p-6 border border-slate-100/90 shadow-[var(--shadow-card)] space-y-4">
-            {/* Cabeçalho Limpo */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100/80">
-              <div>
-                <h2 className="text-[15px] font-black text-slate-900 tracking-tight leading-none font-space-grotesk">
-                  Indicadores de Prontidão
-                </h2>
-                <p className="text-[11px] text-slate-400 font-medium mt-1">
-                  Desempenho operacional em {labelPeriodo}
-                </p>
-              </div>
-
-              <div className="hidden sm:flex items-center gap-1.5">
-                <span className="text-[11px] font-bold text-slate-500 bg-slate-100/80 px-2.5 py-0.5 rounded-full">
-                  Hospital Piemonte Paraguaçu
-                </span>
-              </div>
-            </div>
-
-            {/* Trio de Indicadores Circulares */}
-            <div className="grid grid-cols-3 divide-x divide-slate-100 pt-2">
-              {/* Indicador 1: Rondas Conformes */}
-              <div className="flex flex-col items-center text-center px-1">
-                <AnelCircular3D
-                  porcentagem={taxaRondasSemFalhas}
-                  gradienteId="gradRondasOk"
-                  corInicio="#84CC16"
-                  corFim="#10B981"
-                  tamanho={76}
-                  espessura={6.5}
-                />
-                <h4 className="text-[12px] font-black text-slate-800 mt-2.5 leading-tight">
-                  Rondas 100% OK
-                </h4>
-                <span className="text-[10.5px] font-black font-nunito text-emerald-600 mt-0.5">
-                  {dados.rondasSemNcNoPeriodo} de {dados.rondasNoPeriodo}
-                </span>
-              </div>
-
-              {/* Indicador 2: Itens Aprovados */}
-              <div className="flex flex-col items-center text-center px-1">
-                <AnelCircular3D
-                  porcentagem={taxaItensAprovados}
-                  gradienteId="gradItensAprovados"
-                  corInicio="#38BDF8"
-                  corFim="#6366F1"
-                  tamanho={76}
-                  espessura={6.5}
-                />
-                <h4 className="text-[12px] font-black text-slate-800 mt-2.5 leading-tight">
-                  Itens Aprovados
-                </h4>
-                <span className="text-[10.5px] font-black font-nunito text-indigo-600 mt-0.5">
-                  {dados.totalItensConformes} de {dados.totalItens}
-                </span>
-              </div>
-
-              {/* Indicador 3: Não-Críticas */}
-              <div className="flex flex-col items-center text-center px-1">
-                <AnelCircular3D
-                  porcentagem={taxaNaoCritica}
-                  gradienteId="gradNaoCritico"
-                  corInicio="#FBBF24"
-                  corFim="#F97316"
-                  tamanho={76}
-                  espessura={6.5}
-                />
-                <h4 className="text-[12px] font-black text-slate-800 mt-2.5 leading-tight">
-                  Não-Críticas
-                </h4>
-                <span className="text-[10.5px] font-black font-nunito text-amber-600 mt-0.5">
-                  {Math.max(dados.ncsAbertasNoPeriodo - dados.ncsPorCriticidade.critico, 0)} de {dados.ncsAbertasNoPeriodo}
-                </span>
-              </div>
-            </div>
-          </div>
-
           {/* ATIVIDADE DE RONDAS (RONDAS CONCLUÍDAS POR DIA) */}
           <div className="bg-white rounded-[28px] p-5 sm:p-6 border border-gray-100 shadow-[var(--shadow-card)]">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-[15px] font-black text-gray-900 tracking-tight leading-none font-space-grotesk">
+                <h3 className="text-[15px] font-bold text-gray-900 tracking-tight leading-none font-space-grotesk">
                   Atividade de Rondas
                 </h3>
                 <p className="text-[11px] text-gray-400 font-medium mt-1">
@@ -855,103 +793,184 @@ export function PainelDashboard({ hospitalId }: PainelDashboardProps) {
             </div>
 
             <div className="pt-3 pb-1">
-              <div className="flex items-end gap-1.5 sm:gap-2" style={{ height: '120px' }}>
-                {dados.rondasPorDia.map((dia, idx) => {
-                  const altura = maxRondasDia > 0 ? (dia.quantidade / maxRondasDia) * 100 : 0
-                  const hojeLocal = formatarDataChaveLocal(new Date())
-                  const ehHoje = dia.data === hojeLocal
-                  const temRonda = dia.quantidade > 0
-                  const mostrarLabel = periodo === '7d' || idx % (periodo === '15d' ? 2 : 4) === 0
+              <div className="relative">
+                {/* 1. Fileira de Barras: Altura fixa com baseline compartilhada e imutável */}
+                <div
+                  className={`flex items-end w-full ${
+                    periodo === '7d'
+                      ? 'gap-2 sm:gap-3'
+                      : periodo === '15d'
+                      ? 'gap-1 sm:gap-1.5'
+                      : 'gap-0.5 sm:gap-1'
+                  }`}
+                  style={{ height: '94px' }}
+                >
+                  {dados.rondasPorDia.map((dia) => {
+                    const altura = maxRondasDia > 0 ? (dia.quantidade / maxRondasDia) * 100 : 0
+                    const hojeLocal = formatarDataChaveLocal(new Date())
+                    const ehHoje = dia.data === hojeLocal
+                    const temRonda = dia.quantidade > 0
 
-                  return (
-                    <div
-                      key={dia.data}
-                      className="flex-1 flex flex-col items-center justify-end h-full gap-1.5 group"
-                    >
-                      {/* Número de rondas */}
-                      <span
-                        className={`text-[10px] font-black font-nunito leading-none transition-colors ${
-                          temRonda ? 'text-gray-800 font-black' : 'text-transparent group-hover:text-gray-300'
-                        }`}
+                    return (
+                      <div
+                        key={dia.data}
+                        className="flex-1 flex flex-col items-center justify-end h-full group relative cursor-pointer"
                       >
-                        {dia.quantidade}
-                      </span>
+                        {/* Tooltip flutuante no hover / toque */}
+                        <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-150 z-30 bg-gray-900/90 text-white text-[9.5px] font-bold px-2 py-0.5 rounded-md whitespace-nowrap shadow-lg backdrop-blur-sm">
+                          {dia.quantidade} ronda{dia.quantidade !== 1 ? 's' : ''} • {dia.diaSemana}, {dia.diaNumero}/{dia.mesCurto}
+                        </div>
 
-                      {/* Barra 3D */}
-                      <div className="w-full bg-gray-100/90 rounded-t-xl h-[78px] flex items-end overflow-hidden p-0.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
-                        <div
-                          className={`w-full rounded-lg transition-all duration-500 ${
-                            ehHoje && temRonda
-                              ? 'bg-gradient-to-t from-[#7C3AED] to-[#A78BFA] shadow-[0_2px_6px_rgba(124,58,237,0.4),inset_0_1px_0.5px_rgba(255,255,255,0.5)]'
-                              : temRonda
-                              ? 'bg-gradient-to-t from-blue-500 to-sky-400 shadow-[0_2px_5px_rgba(59,130,246,0.35),inset_0_1px_0.5px_rgba(255,255,255,0.5)]'
-                              : 'bg-transparent'
-                          }`}
-                          style={{
-                            height: temRonda ? `${Math.max(altura, 14)}%` : '0%',
-                          }}
-                        />
-                      </div>
-
-                      {/* Rótulo do dia */}
-                      {mostrarLabel && (
-                        <div className="flex flex-col items-center leading-none">
-                          <span className={`text-[9px] font-bold ${ehHoje ? 'text-[#7C3AED]' : 'text-gray-400'}`}>
-                            {dia.diaSemana}
-                          </span>
-                          <span className={`text-[8.5px] font-semibold mt-0.5 ${ehHoje ? 'text-[#7C3AED] font-black' : 'text-gray-300'}`}>
-                            {dia.diaNumero}
+                        {/* Contador numérico acima da barra */}
+                        <div className="h-4 flex items-center justify-center shrink-0 mb-1">
+                          <span
+                            className={`font-black font-nunito leading-none transition-colors ${
+                              periodo === '30d' ? 'text-[8.5px]' : 'text-[10px]'
+                            } ${
+                              temRonda
+                                ? 'text-gray-800'
+                                : 'text-transparent group-hover:text-gray-400'
+                            }`}
+                          >
+                            {dia.quantidade}
                           </span>
                         </div>
-                      )}
-                    </div>
-                  )
-                })}
+
+                        {/* Track da Barra e Preenchimento com altura máxima garantida */}
+                        <div
+                          className={`w-full h-[74px] flex items-end overflow-hidden ${
+                            periodo === '7d'
+                              ? 'bg-gray-100/80 rounded-xl p-0.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)]'
+                              : periodo === '15d'
+                              ? 'bg-gray-100/50 hover:bg-gray-100/80 rounded-lg p-0.5'
+                              : 'bg-gray-100/35 hover:bg-blue-50/70 rounded-t-sm p-px'
+                          }`}
+                        >
+                          <div
+                            className={`w-full transition-all duration-500 ${
+                              periodo === '7d'
+                                ? 'rounded-[10px]'
+                                : periodo === '15d'
+                                ? 'rounded-[6px]'
+                                : 'rounded-t-xs sm:rounded-t-sm'
+                            } ${
+                              ehHoje && temRonda
+                                ? 'bg-gradient-to-t from-[#17A592] to-[#2ED29E] shadow-[0_2px_6px_rgba(23,165,146,0.35),inset_0_1px_0.5px_rgba(255,255,255,0.5)]'
+                                : temRonda
+                                ? 'bg-gradient-to-t from-blue-500 to-sky-400 shadow-[0_2px_5px_rgba(59,130,246,0.3),inset_0_1px_0.5px_rgba(255,255,255,0.5)]'
+                                : 'bg-transparent'
+                            }`}
+                            style={{
+                              height: temRonda ? `${Math.max(altura, 14)}%` : '0%',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Linha de base horizontal que ancora todas as colunas com precisão */}
+                <div className="w-full h-[1.5px] bg-gray-100/90 rounded-full mt-1 mb-1.5" />
+
+                {/* 2. Fileira de Rótulos de Data perfeitamente alinhada com as colunas */}
+                <div
+                  className={`flex items-start w-full ${
+                    periodo === '7d'
+                      ? 'gap-2 sm:gap-3'
+                      : periodo === '15d'
+                      ? 'gap-1 sm:gap-1.5'
+                      : 'gap-0.5 sm:gap-1'
+                  } h-[28px] overflow-visible`}
+                >
+                  {dados.rondasPorDia.map((dia, idx) => {
+                    const totalDias = dados.rondasPorDia.length
+                    const hojeLocal = formatarDataChaveLocal(new Date())
+                    const ehHoje = dia.data === hojeLocal
+
+                    let mostrarLabel = false
+                    let textoLinha1 = dia.diaSemana
+                    let textoLinha2 = dia.diaNumero
+
+                    if (periodo === '7d') {
+                      mostrarLabel = true
+                      textoLinha1 = ehHoje ? 'Hoje' : dia.diaSemana
+                      textoLinha2 = dia.diaNumero
+                    } else if (periodo === '15d') {
+                      mostrarLabel = idx % 2 === 0 || idx === totalDias - 1
+                      textoLinha1 = ehHoje ? 'Hoje' : dia.diaSemana
+                      textoLinha2 = dia.diaNumero
+                    } else {
+                      const marcos30d = [0, 6, 12, 18, 24, totalDias - 1]
+                      mostrarLabel = marcos30d.includes(idx)
+                      if (ehHoje) {
+                        textoLinha1 = 'Hoje'
+                        textoLinha2 = dia.diaNumero
+                      } else if (idx === 0 || dia.diaNumero === '01') {
+                        textoLinha1 = dia.mesCurto
+                        textoLinha2 = dia.diaNumero
+                      } else {
+                        textoLinha1 = dia.diaSemana
+                        textoLinha2 = dia.diaNumero
+                      }
+                    }
+
+                    return (
+                      <div
+                        key={`label-${dia.data}`}
+                        className="flex-1 flex flex-col items-center justify-start text-center relative overflow-visible"
+                      >
+                        {mostrarLabel ? (
+                          <div className="flex flex-col items-center leading-none whitespace-nowrap">
+                            <span
+                              className={`font-bold transition-colors ${
+                                periodo === '30d' ? 'text-[8px]' : 'text-[9px]'
+                              } ${ehHoje ? 'text-[#17A592]' : 'text-gray-400'}`}
+                            >
+                              {textoLinha1}
+                            </span>
+                            <span
+                              className={`font-bold mt-0.5 transition-colors ${
+                                periodo === '30d' ? 'text-[8px]' : 'text-[8.5px]'
+                              } ${ehHoje ? 'text-[#17A592] font-black' : 'text-gray-400'}`}
+                            >
+                              {textoLinha2}
+                            </span>
+                            {ehHoje && (
+                              <span className="w-1 h-1 rounded-full bg-[#17A592] mt-0.5 shrink-0" />
+                            )}
+                          </div>
+                        ) : (
+                          <span
+                            className={`rounded-full bg-gray-200/70 mt-1.5 shrink-0 ${
+                              periodo === '30d' ? 'w-0.5 h-0.5' : 'w-1 h-1'
+                            }`}
+                          />
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Tempo Médio de Resolução + NCs por Criticidade */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Tempo Médio */}
-            <div className="bg-white rounded-[28px] p-5 border border-gray-100 shadow-[var(--shadow-card)]">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tempo Médio de Resolução</span>
-              <p className="text-[24px] font-black font-nunito text-gray-900 mt-2 leading-none">
-                {dados.tempoMedioResolucaoMs !== null ? formatarDuracao(dados.tempoMedioResolucaoMs) : '—'}
-              </p>
-              {tendenciaResolucao && (
-                <div className={`mt-2 inline-flex items-center gap-1 text-[10px] font-bold font-nunito px-2 py-0.5 rounded-full ${
-                  tendenciaResolucao === 'melhorou' ? 'bg-emerald-50 text-emerald-600' :
-                  tendenciaResolucao === 'piorou' ? 'bg-red-50 text-red-500' :
-                  'bg-gray-50 text-gray-400'
-                }`}>
-                  {tendenciaResolucao === 'melhorou' ? '↓' : tendenciaResolucao === 'piorou' ? '↑' : '→'}
-                  {tendenciaResolucao === 'melhorou' ? ' Melhorou vs período anterior' : tendenciaResolucao === 'piorou' ? ' Piorou vs período anterior' : ' Estável'}
-                </div>
-              )}
-            </div>
-
-            {/* NCs por Criticidade */}
-            <div className="bg-white rounded-[28px] p-5 border border-gray-100 shadow-[var(--shadow-card)]">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">NCs por Criticidade</span>
-              <div className="mt-3.5 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
-                  <span className="text-[11px] text-gray-600 font-bold flex-1">Crítico</span>
-                  <span className="text-[13px] font-black font-nunito text-gray-900">{dados.ncsPorCriticidade.critico}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
-                  <span className="text-[11px] text-gray-600 font-bold flex-1">Importante</span>
-                  <span className="text-[13px] font-black font-nunito text-gray-900">{dados.ncsPorCriticidade.importante}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-400 shrink-0" />
-                  <span className="text-[11px] text-gray-600 font-bold flex-1">Informativo</span>
-                  <span className="text-[13px] font-black font-nunito text-gray-900">{dados.ncsPorCriticidade.informativo}</span>
-                </div>
+          {/* Tempo Médio de Resolução */}
+          <div className="bg-white rounded-[28px] p-5 border border-gray-100 shadow-[var(--shadow-card)]">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tempo Médio de Resolução</span>
+            <p className="text-[24px] font-black font-nunito text-gray-900 mt-2 leading-none">
+              {dados.tempoMedioResolucaoMs !== null ? formatarDuracao(dados.tempoMedioResolucaoMs) : '—'}
+            </p>
+            {tendenciaResolucao && (
+              <div className={`mt-2 inline-flex items-center gap-1 text-[10px] font-bold font-nunito px-2 py-0.5 rounded-full ${
+                tendenciaResolucao === 'melhorou' ? 'bg-emerald-50 text-emerald-600' :
+                tendenciaResolucao === 'piorou' ? 'bg-red-50 text-red-500' :
+                'bg-gray-50 text-gray-400'
+              }`}>
+                {tendenciaResolucao === 'melhorou' ? '↓' : tendenciaResolucao === 'piorou' ? '↑' : '→'}
+                {tendenciaResolucao === 'melhorou' ? ' Melhorou vs período anterior' : tendenciaResolucao === 'piorou' ? ' Piorou vs período anterior' : ' Estável'}
               </div>
-            </div>
+            )}
           </div>
 
         </div>
@@ -971,7 +990,7 @@ export function PainelDashboard({ hospitalId }: PainelDashboardProps) {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-[14px] font-black text-gray-900 tracking-tight leading-none font-space-grotesk">
+                  <h3 className="text-[14px] font-bold text-gray-900 tracking-tight leading-none font-space-grotesk">
                     Ativos com Mais NCs
                   </h3>
                   <p className="text-[10px] text-gray-400 font-medium mt-1">
@@ -1037,7 +1056,7 @@ export function PainelDashboard({ hospitalId }: PainelDashboardProps) {
           <div className="bg-white rounded-[28px] p-5 sm:p-6 border border-gray-100 shadow-[var(--shadow-card)] space-y-4">
             <div className="flex items-center justify-between pb-1 border-b border-gray-100/80">
               <div>
-                <h3 className="text-[14px] font-black text-gray-900 tracking-tight leading-none font-space-grotesk">
+                <h3 className="text-[14px] font-bold text-gray-900 tracking-tight leading-none font-space-grotesk">
                   Inspetores Mais Ativos
                 </h3>
                 <p className="text-[10px] text-gray-400 font-medium mt-1">
@@ -1078,12 +1097,12 @@ export function PainelDashboard({ hospitalId }: PainelDashboardProps) {
             )}
           </div>
 
-          {/* RONDAS RECENTES */}
+          {/* RONDAS RECENTES (ESTRITAMENTE ÚLTIMAS 3) */}
           {dados.rondasRecentes.length > 0 && (
             <div className="bg-white rounded-[28px] p-5 sm:p-6 border border-gray-100 shadow-[var(--shadow-card)]">
-              <h3 className="text-[14px] font-black text-gray-900 tracking-tight mb-3 font-space-grotesk">Rondas Recentes</h3>
+              <h3 className="text-[14px] font-bold text-gray-900 tracking-tight mb-3 font-space-grotesk">Rondas Recentes</h3>
               <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin">
-                {dados.rondasRecentes.map((ronda) => {
+                {dados.rondasRecentes.slice(0, 3).map((ronda) => {
                   const dataObj = ronda.dataHora ? new Date(ronda.dataHora) : null
                   const hora = dataObj
                     ? dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -1094,9 +1113,13 @@ export function PainelDashboard({ hospitalId }: PainelDashboardProps) {
 
                   return (
                     <div key={ronda.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-colors">
-                      <div className="w-8 h-8 rounded-full bg-purple-50 border border-purple-100 flex items-center justify-center text-[10px] font-extrabold text-purple-700 shrink-0">
-                        {ronda.inspetorNome.replace(/^(Enf\.|Eng\.|Coord\.)\s*/i, '').substring(0, 2).toUpperCase()}
-                      </div>
+                      <AvatarPerfil
+                        perfil={ronda.inspetorPerfil}
+                        avatarUrl={ronda.inspetorAvatarUrl}
+                        nome={ronda.inspetorNome}
+                        setor={ronda.inspetorSetor}
+                        tamanho="sm"
+                      />
                       <div className="flex-1 min-w-0">
                         <p className="text-[12px] font-bold text-gray-900 truncate">{ronda.inspetorNome}</p>
                         <p className="text-[10px] text-gray-400 font-medium truncate">

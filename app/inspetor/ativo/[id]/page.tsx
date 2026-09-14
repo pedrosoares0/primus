@@ -108,15 +108,24 @@ export default function PaginaAtivo() {
     <div className="px-4 sm:px-5 pt-3 pb-10 space-y-4 sm:space-y-5">
 
       {/* Voltar */}
-      <Link
-        href="/inspetor"
-        className="inline-flex items-center gap-1.5 text-[13px] font-bold text-gray-600 hover:text-black transition-colors -ml-1"
+      <button
+        type="button"
+        onClick={() => {
+          if (typeof window !== 'undefined' && window.history.length > 1) {
+            router.back()
+          } else if (ativo.local_id) {
+            router.push(`/inspetor/local/${ativo.local_id}`)
+          } else {
+            router.push('/inspetor')
+          }
+        }}
+        className="inline-flex items-center gap-1.5 text-[13px] font-bold text-gray-600 hover:text-black transition-colors -ml-1 cursor-pointer"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
         </svg>
-        Voltar
-      </Link>
+        {nomeLocal ? `Voltar (${nomeLocal})` : 'Voltar'}
+      </button>
 
       {/* ── Card do Ativo ── */}
       <div className="bg-white rounded-[28px] p-4 sm:p-5 shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-gray-100/80">

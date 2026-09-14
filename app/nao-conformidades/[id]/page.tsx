@@ -5,9 +5,9 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { Botao } from '@/components/ui/Botao'
 import { PillTag } from '@/components/ui/PillTag'
-import { QRCodeAtivo } from '@/components/ui/QRCodeAtivo'
+import { AvatarPerfil } from '@/components/ui/Avatar'
 import { criarClienteSupabase } from '@/lib/supabase/client'
-import { SETORES_LABELS, TIPOS_NC_LABELS, SETORES_CORES, verificarTecnicoAtivo } from '@/lib/roteamentoNC'
+import { SETORES_LABELS, SETORES_CORES, SETORES_ICONES, TIPOS_NC_LABELS, verificarTecnicoAtivo, obterIconeEquipamento } from '@/lib/roteamentoNC'
 import type { StatusNaoConformidade, StatusAtivo, SetorTecnico, TipoNaoConformidade } from '@/lib/supabase/types'
 
 const STATUS_CORES: Record<StatusNaoConformidade, 'azul' | 'laranja' | 'verde' | 'vermelho' | 'cinza'> = {
@@ -28,11 +28,18 @@ const STATUS_LABELS: Record<StatusNaoConformidade, string> = {
   correcao_recusada: 'Correção Recusada',
 }
 
-const STATUS_ATIVO: Record<StatusAtivo, { label: string; dot: string }> = {
-  operacional: { label: 'Operacional', dot: 'bg-emerald-500' },
-  operacional_com_restricoes: { label: 'Com restrições', dot: 'bg-amber-500' },
-  indisponivel: { label: 'Indisponível', dot: 'bg-red-500' },
-  em_manutencao: { label: 'Em manutenção', dot: 'bg-sky-500' },
+function calcularTempoDesdeAbertura(dataCriacao?: string) {
+  if (!dataCriacao) return 'Recentemente'
+  const criada = new Date(dataCriacao)
+  const agora = new Date()
+  const diffMs = agora.getTime() - criada.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHoras = Math.floor(diffMins / 60)
+  const diffDias = Math.floor(diffHoras / 24)
+
+  if (diffMins < 60) return `Há ${diffMins} min`
+  if (diffHoras < 24) return `Há ${diffHoras} h`
+  return `Há ${diffDias} d`
 }
 
 export default function DetalheNCEngenharia() {
@@ -47,12 +54,16 @@ export default function DetalheNCEngenharia() {
   const [avisoSucesso, setAvisoSucesso] = useState<string | null>(null)
   const [carregando, setCarregando] = useState(true)
   
+  // Controle do encerramento pelo Coordenador
+  const [mostrarModalConfirmacaoEncerramento, setMostrarModalConfirmacaoEncerramento] = useState(false)
+  const [encerrando, setEncerrando] = useState(false)
+
   // Controle do formulário de manutenção
   const [mostrarFormManutencao, setMostrarFormManutencao] = useState(false)
   const [descricaoReparo, setDescricaoReparo] = useState('')
   const [erroForm, setErroForm] = useState('')
 
-  // Controle de resolução direta (Coordenador)
+  // Controle de resolução direta
   const [mostrarFormResolucao, setMostrarFormResolucao] = useState(false)
   const [descricaoResolucao, setDescricaoResolucao] = useState('')
   const [erroFormResolucao, setErroFormResolucao] = useState('')
@@ -91,10 +102,10 @@ export default function DetalheNCEngenharia() {
         setUsuario({ id: currentUser.id, nome: currentUser.nome, perfil: currentUser.perfil })
       }
 
-      // 2. Buscar a NC pelo ID do Supabase
+      // 2. Buscar a NC pelo ID do Supabase com relacionamentos
       const { data: ncData, error: ncError } = await supabase
         .from('nao_conformidades')
-        .select('*, ativos(*, categorias_ativos(*), locais(*, centros_cirurgicos(*, unidades(*)))), itens_execucao_checklist(*)')
+        .select('*, ativos(*, categorias_ativos(*), locais(*, centros_cirurgicos(*, unidades(*)))), itens_execucao_checklist(*, execucoes_checklist(usuario_id, usuarios(id, nome, email, avatar_url, perfil)))')
         .eq('id', ncId)
         .single()
 
@@ -134,17 +145,47 @@ export default function DetalheNCEngenharia() {
       const centroCirurgico = localAtivo.centros_cirurgicos || {}
       const unidade = centroCirurgico.unidades || {}
       const itemExec = ncData.itens_execucao_checklist || {}
+      const execChecklist = Array.isArray(itemExec.execucoes_checklist) 
+        ? itemExec.execucoes_checklist[0] 
+        : (itemExec.execucoes_checklist || {})
+      const inspetorUsuario = Array.isArray(execChecklist.usuarios) 
+        ? execChecklist.usuarios[0] 
+        : (execChecklist.usuarios || null)
+
+      let criadoPorNome = 'Inspetor'
+      let criadoPorAvatar = null
+      let criadoPorPerfil = 'inspetor'
+
+      if (inspetorUsuario) {
+        criadoPorNome = inspetorUsuario.nome || 'Inspetor'
+        criadoPorAvatar = inspetorUsuario.avatar_url || null
+        criadoPorPerfil = inspetorUsuario.perfil || 'inspetor'
+      } else if (execChecklist.usuario_id) {
+        const { data: uData } = await supabase
+          .from('usuarios')
+          .select('nome, avatar_url, perfil')
+          .eq('id', execChecklist.usuario_id)
+          .single()
+        if (uData) {
+          criadoPorNome = uData.nome || 'Inspetor'
+          criadoPorAvatar = uData.avatar_url || null
+          criadoPorPerfil = uData.perfil || 'inspetor'
+        }
+      }
+
+      const descItem = (typeof itemExec.item_congelado === 'string' ? itemExec.item_congelado : itemExec.item_congelado?.descricao) || null
+      const descFinal = itemExec.evidencia_texto || descItem || 'Não conformidade registrada no checklist.'
 
       // Formatar objeto da NC
       setNc({
         id: ncData.id,
         numero_unico: ncData.numero_unico || `NC-${ncData.criado_em ? new Date(ncData.criado_em).getFullYear() : '2026'}-${ncData.id.substring(0, 4).toUpperCase()}`,
-        descricao: itemExec.evidencia_texto || 'Não conformidade registrada no checklist.',
+        descricao: descFinal,
         criticidade: ncData.criticidade,
         status: ncData.status,
         prazo: ncData.prazo,
         created_at: ncData.criado_em,
-        evidencia_url: itemExec.evidencia_url,
+        evidencia_url: ncData.evidencia_url || itemExec.evidencia_url || null,
         ativo: ncData.ativos ? {
           id: ncData.ativos.id,
           local_id: ncData.ativos.local_id,
@@ -156,15 +197,15 @@ export default function DetalheNCEngenharia() {
         } : null,
         local: {
           nome: localAtivo.nome || 'Sala',
-          unidade: unidade.nome || 'Unidade',
-          centro_cirurgico: centroCirurgico.nome || 'Centro Cirúrgico',
-          hospital: 'Hospital'
+          unidade: unidade.nome || centroCirurgico.nome || '',
         },
         item_execucao: {
-          item_congelado: itemExec.item_congelado?.descricao || ncData.ativos?.nome || 'Equipamento',
-          evidencia_texto: itemExec.evidencia_texto || 'Não conformidade registrada.',
+          item_congelado: descItem || ncData.ativos?.nome || 'Equipamento',
+          evidencia_texto: itemExec.evidencia_texto || null,
         },
-        criado_por_nome: 'Inspetor',
+        criado_por_nome: criadoPorNome,
+        criado_por_avatar: criadoPorAvatar,
+        criado_por_perfil: criadoPorPerfil,
         responsavel_nome: responsavelNome,
         responsavel_id: ncData.responsavel_id,
         tipo: ncData.tipo || 'equipamento',
@@ -190,13 +231,61 @@ export default function DetalheNCEngenharia() {
     carregarDados()
   }
 
+  // Ação: Encerrar NC (Coordenador)
+  async function executarEncerramentoNC() {
+    if (!nc || encerrando) return
+    setEncerrando(true)
+    try {
+      const supabase = criarClienteSupabase() as any
+
+      // 1. Encerrar a NC
+      const { error: ncError } = await supabase
+        .from('nao_conformidades')
+        .update({ 
+          status: 'encerrada', 
+          responsavel_id: usuario.id || nc.responsavel_id 
+        })
+        .eq('id', nc.id)
+
+      if (ncError) throw ncError
+
+      // 2. Restaurar status do Ativo para operacional
+      if (nc.ativo?.id) {
+        await supabase
+          .from('ativos')
+          .update({ status: 'operacional' })
+          .eq('id', nc.ativo.id)
+      }
+
+      // 3. Registrar no histórico
+      await supabase
+        .from('historico_status_nao_conformidade')
+        .insert({
+          nao_conformidade_id: nc.id,
+          status_anterior: nc.status,
+          status_novo: 'encerrada',
+          usuario_id: usuario.id || null,
+          justificativa: '[Encerramento pelo Coordenador]',
+        })
+
+      setMostrarModalConfirmacaoEncerramento(false)
+      setAvisoSucesso('Não conformidade encerrada com sucesso!')
+      setTimeout(() => setAvisoSucesso(null), 4000)
+      atualizarNC()
+    } catch (err: any) {
+      console.error(err)
+      alert(`Erro ao encerrar NC: ${err.message || err}`)
+    } finally {
+      setEncerrando(false)
+    }
+  }
+
   // Ação: Assumir NC
   async function handleAssumir() {
     if (!nc) return
     try {
       const supabase = criarClienteSupabase() as any
       
-      // 1. Atualizar a NC
       const { error } = await supabase
         .from('nao_conformidades')
         .update({ responsavel_id: usuario.id })
@@ -204,7 +293,6 @@ export default function DetalheNCEngenharia() {
 
       if (error) throw error
 
-      // 2. Gravar no histórico de status
       await supabase
         .from('historico_status_nao_conformidade')
         .insert({
@@ -229,7 +317,6 @@ export default function DetalheNCEngenharia() {
     try {
       const supabase = criarClienteSupabase() as any
       
-      // 1. Atualizar a NC para em_analise
       const { error } = await supabase
         .from('nao_conformidades')
         .update({ status: 'em_analise', responsavel_id: usuario.id })
@@ -237,7 +324,6 @@ export default function DetalheNCEngenharia() {
 
       if (error) throw error
 
-      // 2. Gravar no histórico
       await supabase
         .from('historico_status_nao_conformidade')
         .insert({
@@ -268,7 +354,6 @@ export default function DetalheNCEngenharia() {
     try {
       const supabase = criarClienteSupabase() as any
 
-      // 1. Inserir em registros_manutencao
       const { error: maintError } = await supabase
         .from('registros_manutencao')
         .insert({
@@ -280,7 +365,6 @@ export default function DetalheNCEngenharia() {
 
       if (maintError) throw maintError
 
-      // 2. Atualizar status da NC para em_correcao
       const { error: ncError } = await supabase
         .from('nao_conformidades')
         .update({ status: 'em_correcao' })
@@ -288,7 +372,6 @@ export default function DetalheNCEngenharia() {
 
       if (ncError) throw ncError
 
-      // 3. Atualizar status do Ativo para 'em_manutencao' (RN-021)
       if (nc.ativo?.id) {
         await supabase
           .from('ativos')
@@ -296,7 +379,6 @@ export default function DetalheNCEngenharia() {
           .eq('id', nc.ativo.id)
       }
 
-      // 4. Inserir histórico
       await supabase
         .from('historico_status_nao_conformidade')
         .insert({
@@ -324,7 +406,6 @@ export default function DetalheNCEngenharia() {
     try {
       const supabase = criarClienteSupabase() as any
 
-      // 1. Atualizar registro_manutencao para finalizada
       if (nc.registro_manutencao?.id) {
         const { error: maintError } = await supabase
           .from('registros_manutencao')
@@ -333,7 +414,6 @@ export default function DetalheNCEngenharia() {
         if (maintError) throw maintError
       }
 
-      // 2. Atualizar status da NC para aguardando_validacao
       const { error: ncError } = await supabase
         .from('nao_conformidades')
         .update({ status: 'aguardando_validacao' })
@@ -341,7 +421,6 @@ export default function DetalheNCEngenharia() {
 
       if (ncError) throw ncError
 
-      // 3. Inserir histórico
       await supabase
         .from('historico_status_nao_conformidade')
         .insert({
@@ -372,7 +451,6 @@ export default function DetalheNCEngenharia() {
     try {
       const supabase = criarClienteSupabase() as any
 
-      // 1. Inserir registro de manutenção/resolução
       await supabase
         .from('registros_manutencao')
         .insert({
@@ -383,7 +461,6 @@ export default function DetalheNCEngenharia() {
           finalizada_em: new Date().toISOString(),
         })
 
-      // 2. Encerrar a NC diretamente
       const { error: ncError } = await supabase
         .from('nao_conformidades')
         .update({ 
@@ -394,7 +471,6 @@ export default function DetalheNCEngenharia() {
 
       if (ncError) throw ncError
 
-      // 3. Restaurar ativo para operacional
       if (nc.ativo?.id) {
         await supabase
           .from('ativos')
@@ -402,7 +478,6 @@ export default function DetalheNCEngenharia() {
           .eq('id', nc.ativo.id)
       }
 
-      // 4. Histórico
       await supabase
         .from('historico_status_nao_conformidade')
         .insert({
@@ -429,9 +504,13 @@ export default function DetalheNCEngenharia() {
     return (
       <div className="px-5 pt-10 text-center space-y-4">
         <p className="text-red-500 font-bold">{erro}</p>
-        <Link href="/engenharia" className="inline-block text-[#246BFD] font-bold">
-          Voltar para a fila
-        </Link>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="inline-block text-[#17A592] font-bold cursor-pointer"
+        >
+          Voltar
+        </button>
       </div>
     )
   }
@@ -449,35 +528,53 @@ export default function DetalheNCEngenharia() {
 
   const corStatus = STATUS_CORES[nc.status as StatusNaoConformidade]
   const labelStatus = STATUS_LABELS[nc.status as StatusNaoConformidade]
-  const ativoStatusCfg = nc.ativo ? STATUS_ATIVO[nc.ativo.status as StatusAtivo] : null
 
   // Regra de Negócio: verificar se tem outro responsável
   const temOutroResponsavel = nc.responsavel_id !== null && nc.responsavel_id !== usuario.id
 
-  // Regra: Coordenador pode resolver diretamente quando não há técnico ativo no setor
-  const ehCoordenador = usuario.perfil === 'coordenador'
+  // Identificação do perfil do usuário
+  const ehCoordenador = usuario.perfil === 'coordenador' || usuario.perfil === 'gestor' || usuario.perfil === 'administrador'
   const setorNC = nc.setor_responsavel as SetorTecnico | null
   const temTecnicoNoSetor = verificarTecnicoAtivo(setorNC)
   const podeResolverDiretamente = ehCoordenador && !temTecnicoNoSetor && nc.status !== 'encerrada' && nc.status !== 'aguardando_validacao'
+  const fotoAtivo = nc.ativo?.foto_url || obterIconeEquipamento(nc.ativo?.nome, nc.ativo?.categoria)
+
+  function handleVoltar() {
+    if (ehCoordenador) {
+      router.push('/coordenador?aba=ncs')
+    } else if (usuario.perfil === 'engenharia_clinica' || usuario.perfil === 'tecnico') {
+      router.push('/engenharia')
+    } else if (usuario.perfil === 'inspetor') {
+      router.push('/inspetor')
+    } else {
+      if (typeof window !== 'undefined' && window.history.length > 1) {
+        router.back()
+      } else {
+        router.push('/coordenador?aba=ncs')
+      }
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#F4F6FA] pb-36">
-      {/* Header compact com botão voltar */}
-      <div className="bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between sticky top-0 z-30">
-        <Link
-          href="/engenharia"
-          className="inline-flex items-center gap-1.5 text-[13px] font-bold text-gray-600 hover:text-black transition-colors"
+      {/* Header com botão voltar e status limpo */}
+      <div className="bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between relative z-30">
+        <button
+          type="button"
+          onClick={handleVoltar}
+          className="inline-flex items-center gap-1.5 text-[13px] font-bold text-gray-600 hover:text-black transition-colors cursor-pointer"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
-          Fila
-        </Link>
+          {ehCoordenador ? 'Voltar para NCs' : 'Voltar'}
+        </button>
+
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">
-            {nc.numero_unico}
-          </span>
-          <PillTag cor={corStatus}>{labelStatus}</PillTag>
+          {/* Apenas exibe status se NÃO estiver aberta, evitando conflito visual com o badge crítico */}
+          {nc.status !== 'aberta' && (
+            <PillTag cor={corStatus}>{labelStatus}</PillTag>
+          )}
         </div>
       </div>
 
@@ -492,8 +589,8 @@ export default function DetalheNCEngenharia() {
           </div>
         )}
 
-        {/* Alerta de Responsável */}
-        {temOutroResponsavel && (
+        {/* Alerta de Responsável (visível para técnicos) */}
+        {!ehCoordenador && temOutroResponsavel && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-amber-800 text-xs font-bold flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
               <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
@@ -509,113 +606,100 @@ export default function DetalheNCEngenharia() {
           </div>
         )}
 
-        {/* ── CARD 1: O ATIVO ── */}
-        <div className="bg-white rounded-[24px] p-5 shadow-[var(--shadow-card)] border border-gray-100/80 space-y-4">
-          <div>
-            <PillTag cor="azul">
-              {nc.ativo?.categoria || 'Equipamento'}
-            </PillTag>
-            <h2 className="text-base font-extrabold text-gray-900 mt-2 leading-tight tracking-tight">
-              {nc.ativo?.nome || 'Ativo desconhecido'}
-            </h2>
-            <div className="flex flex-wrap items-center justify-between gap-3 mt-3.5">
-              {nc.ativo?.codigo_qr && (
-                <div className="space-y-0.5">
-                  <p className="text-[10px] font-bold text-gray-400 tracking-wider uppercase">
-                    Código de Segurança
-                  </p>
-                  <p className="text-xs font-mono font-bold text-gray-700 bg-gray-50 border border-gray-100 rounded-lg px-2 py-0.5 select-all">
-                    {nc.ativo.codigo_qr}
-                  </p>
-                </div>
-              )}
-              {nc.ativo && (
-                <QRCodeAtivo
-                  ativoId={nc.ativo.id}
-                  localId={nc.ativo.local_id}
-                  nomeAtivo={nc.ativo.nome}
-                  codigoQr={nc.ativo.codigo_qr}
-                  patrimonio={nc.ativo.patrimonio}
-                />
-              )}
+        {/* ── CARD 1: O ATIVO (Com foto/ícone oficial do ativo) ── */}
+        <div className="bg-white rounded-[24px] p-5 shadow-[var(--shadow-card)] border border-gray-100/80">
+          <div className="flex items-start gap-3.5">
+            <div className="relative w-12 h-12 rounded-[18px] overflow-hidden bg-gray-50 flex items-center justify-center shrink-0 border border-gray-100/80 shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
+              <img
+                src={fotoAtivo}
+                alt={nc.ativo?.nome || 'Ativo'}
+                className="w-full h-full object-cover"
+              />
             </div>
-          </div>
-
-          <div className="h-px bg-gray-100" />
-
-          {/* Breadcrumb Local completo */}
-          <div className="space-y-1.5">
-            <p className="text-[10px] font-bold text-gray-400 tracking-wider uppercase">Localização Física</p>
-            <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-500 font-medium">
-              <span>{nc.local.hospital}</span>
-              <svg className="w-3 h-3 text-gray-300" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
-              <span>{nc.local.unidade}</span>
-              <svg className="w-3 h-3 text-gray-300" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
-              <span>{nc.local.centro_cirurgico}</span>
-              <svg className="w-3 h-3 text-gray-300" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
-              <span className="text-gray-900 font-bold">{nc.local.nome}</span>
-            </div>
-          </div>
-
-          {/* Status do ativo */}
-          {ativoStatusCfg && (
-            <div className="bg-gray-50 rounded-xl p-3 flex items-center justify-between">
-              <span className="text-xs text-gray-500 font-medium">Status Atual do Ativo:</span>
-              <div className="flex items-center gap-1.5">
-                <span className={`w-2.5 h-2.5 rounded-full ${ativoStatusCfg.dot}`} />
-                <span className="text-xs font-bold text-gray-900">{ativoStatusCfg.label}</span>
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                {nc.ativo?.categoria || 'Equipamento'}
+              </span>
+              <h2 className="text-base font-extrabold text-gray-900 leading-snug tracking-tight mt-0.5">
+                {nc.ativo?.nome || 'Equipamento'}
+              </h2>
+              <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-500 font-medium">
+                <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                </svg>
+                <span className="truncate font-semibold text-gray-700">{nc.local.nome}</span>
+                {nc.local.unidade && (
+                  <>
+                    <span className="text-gray-300">•</span>
+                    <span className="truncate text-gray-400">{nc.local.unidade}</span>
+                  </>
+                )}
               </div>
             </div>
-          )}
+          </div>
         </div>
 
-        {/* ── CARD 2: A NÃO CONFORMIDADE ── */}
+        {/* ── CARD 2: A NÃO CONFORMIDADE / OCORRÊNCIA ── */}
         <div className="bg-white rounded-[24px] p-5 shadow-[var(--shadow-card)] border border-gray-100/80 space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-gray-400 tracking-wider uppercase">Relato da Ocorrência</span>
-            <PillTag cor={corCriticidade}>
-              {nc.criticidade === 'critico' ? 'Urgente / Crítico' : nc.criticidade === 'importante' ? 'Importante' : 'Informativo'}
-            </PillTag>
+          {/* Metadados: Duas linhas separadas e bem estruturadas, sem sobreposição */}
+          <div className="space-y-3 pb-3.5 border-b border-gray-100">
+            {/* Linha 1: Tipo de Não Conformidade / Criticidade */}
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                Tipo de Não Conformidade:
+              </span>
+              <PillTag cor={corCriticidade}>
+                {nc.criticidade === 'critico' ? 'Crítico' : nc.criticidade === 'importante' ? 'Importante' : 'Informativo'}
+              </PillTag>
+            </div>
+
+            {/* Linha 2: Encaminhado para */}
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                Encaminhado para:
+              </span>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold ${
+                setorNC && SETORES_CORES[setorNC]
+                  ? `${SETORES_CORES[setorNC].bg} ${SETORES_CORES[setorNC].text} border ${SETORES_CORES[setorNC].border}`
+                  : 'bg-teal-50 text-[#17A592] border border-teal-200'
+              }`}>
+                <span>{setorNC ? SETORES_ICONES[setorNC] : '⚙️'}</span>
+                <span>{setorNC ? SETORES_LABELS[setorNC] : 'Engenharia Clínica'}</span>
+              </span>
+            </div>
           </div>
 
-          <div>
-            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Item Afetado</h4>
-            <p className="text-[14px] font-bold text-gray-800 mt-0.5">{nc.item_execucao.item_congelado}</p>
-          </div>
-
-          <div className="space-y-1.5">
-            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Descrição Detalhada</h4>
-            <p className="text-xs text-gray-600 leading-relaxed font-normal bg-gray-50/70 p-3 rounded-xl border border-gray-100">
-              {nc.descricao}
-            </p>
-          </div>
-
-          {/* Observação Adicional do Inspetor */}
-          {nc.item_execucao.evidencia_texto && (
-            <div className="space-y-1">
-              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Observações do Inspetor</h4>
-              <p className="text-xs text-gray-500 italic">&quot;{nc.item_execucao.evidencia_texto}&quot;</p>
+          {/* Item do checklist afetado (se relevante) */}
+          {nc.item_execucao?.item_congelado && nc.item_execucao.item_congelado !== nc.ativo?.nome && (
+            <div>
+              <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Item Afetado</h4>
+              <p className="text-[13px] font-bold text-gray-800 mt-0.5">{nc.item_execucao.item_congelado}</p>
             </div>
           )}
 
-          {/* Evidência URL (Foto) */}
+          {/* Descrição limpa, direta e sem repetição de texto */}
+          <div className="space-y-1.5">
+            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Descrição da Ocorrência</h4>
+            <div className="bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100/90 text-xs text-gray-700 leading-relaxed font-medium">
+              {nc.descricao || 'Nenhum detalhe adicional informado.'}
+            </div>
+          </div>
+
+          {/* Evidência Fotográfica (se houver) */}
           {nc.evidencia_url && (
             <div className="space-y-1.5">
-              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Evidência Fotográfica</h4>
-              <div className="relative group cursor-zoom-in overflow-hidden rounded-2xl border border-gray-200">
+              <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Foto Registrada</h4>
+              <div 
+                className="relative group cursor-zoom-in overflow-hidden rounded-2xl border border-gray-200"
+                onClick={() => setFotoZoom(nc.evidencia_url)}
+              >
                 <img
                   src={nc.evidencia_url}
                   alt="Foto de evidência"
-                  className="w-full h-44 object-cover hover:scale-105 transition-transform duration-300"
-                  onClick={() => setFotoZoom(nc.evidencia_url)}
+                  className="w-full h-48 object-cover hover:scale-105 transition-transform duration-300"
                 />
-                <div className="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <span className="bg-white/90 text-xs font-bold text-gray-800 px-3 py-1.5 rounded-full shadow-sm">
                     Ampliar Imagem
                   </span>
@@ -626,23 +710,26 @@ export default function DetalheNCEngenharia() {
 
           <div className="h-px bg-gray-100" />
 
-          {/* Assinatura / Criador */}
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-gray-600 font-extrabold text-[11px] shrink-0">
-              {nc.criado_por_nome.substring(5, 7).toUpperCase()}
-            </div>
+          {/* Inspetor que registrou a NC */}
+          <div className="flex items-center gap-3 pt-0.5">
+            <AvatarPerfil
+              perfil={nc.criado_por_perfil || 'inspetor'}
+              nome={nc.criado_por_nome}
+              avatarUrl={nc.criado_por_avatar}
+              tamanho="sm"
+            />
             <div>
-              <p className="text-xs font-bold text-gray-900">{nc.criado_por_nome}</p>
+              <p className="text-xs font-bold text-gray-900">Registrado por {nc.criado_por_nome}</p>
               <p className="text-[10px] text-gray-400">
-                Aberto em {new Date(nc.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {new Date(nc.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
           </div>
         </div>
 
-        {/* ── FORMULÁRIO DE REGISTRO DE MANUTENÇÃO (Modal ou Inline) ── */}
+        {/* ── FORMULÁRIO DE REGISTRO DE MANUTENÇÃO (Técnico) ── */}
         {mostrarFormManutencao && (
-          <div className="bg-white rounded-[24px] p-5 shadow-[var(--shadow-card)] border-2 border-[#246BFD]/20 space-y-4 animate-[fadeIn_0.15s_ease-out]">
+          <div className="bg-white rounded-[24px] p-5 shadow-[var(--shadow-card)] border-2 border-[#17A592]/20 space-y-4 animate-[fadeIn_0.15s_ease-out]">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-gray-900">Registrar Ação de Manutenção</h3>
               <button
@@ -668,7 +755,7 @@ export default function DetalheNCEngenharia() {
                   value={descricaoReparo}
                   onChange={(e) => setDescricaoReparo(e.target.value)}
                   placeholder="Descreva o diagnóstico inicial, peças trocadas, calibração realizada ou justificativa do reparo..."
-                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[16px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#246BFD] focus:ring-1 focus:ring-[#246BFD]/10 transition-all resize-none"
+                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#17A592] focus:ring-1 focus:ring-[#17A592]/10 transition-all resize-none"
                 />
                 {erroForm && <p className="text-[11px] text-red-500 font-medium">{erroForm}</p>}
               </div>
@@ -685,7 +772,7 @@ export default function DetalheNCEngenharia() {
           </div>
         )}
 
-        {/* ── CARD 3: REGISTRO DE MANUTENÇÃO (Se existir) ── */}
+        {/* ── CARD 3: REGISTRO DE MANUTENÇÃO (Se houver) ── */}
         {nc.registro_manutencao && !mostrarFormManutencao && (
           <div className="bg-white rounded-[24px] p-5 shadow-[var(--shadow-card)] border border-gray-100/80 space-y-4 animate-[fadeIn_0.2s_ease-out]">
             <div className="flex items-center justify-between">
@@ -695,7 +782,7 @@ export default function DetalheNCEngenharia() {
               </PillTag>
             </div>
 
-            <div className="bg-sky-50/50 rounded-xl p-3 border border-sky-100/60">
+            <div className="bg-teal-50/40 rounded-xl p-3 border border-teal-100/50">
               <p className="text-xs text-gray-700 leading-relaxed font-normal">
                 {nc.registro_manutencao.descricao}
               </p>
@@ -731,11 +818,11 @@ export default function DetalheNCEngenharia() {
                 hist.status_novo === 'aberta'
                   ? 'bg-red-500 ring-4 ring-red-100'
                   : hist.status_novo === 'em_analise'
-                  ? 'bg-[#246BFD] ring-4 ring-[#246BFD]/10'
+                  ? 'bg-[#17A592] ring-4 ring-[#17A592]/10'
                   : hist.status_novo === 'em_correcao'
                   ? 'bg-amber-500 ring-4 ring-amber-100'
                   : hist.status_novo === 'aguardando_validacao'
-                  ? 'bg-[#7C3AED] ring-4 ring-[#7C3AED]/10'
+                  ? 'bg-teal-500 ring-4 ring-teal-100'
                   : hist.status_novo === 'encerrada'
                   ? 'bg-emerald-500 ring-4 ring-emerald-100'
                   : 'bg-gray-500 ring-4 ring-gray-100'
@@ -747,19 +834,19 @@ export default function DetalheNCEngenharia() {
                     <p className="text-xs font-bold text-gray-800">
                       {hist.status_anterior !== hist.status_novo ? (
                         <>
-                          Alterado para <span className="text-[#246BFD]">{STATUS_LABELS[hist.status_novo as StatusNaoConformidade]}</span>
+                          Alterado para <span className="text-[#17A592]">{STATUS_LABELS[hist.status_novo as StatusNaoConformidade]}</span>
                         </>
                       ) : (
                         <>NC assumida por técnico</>
                       )}
                     </p>
                     {hist.justificativa && (
-                      <p className="text-xs text-amber-600 bg-amber-50/50 p-2 rounded-lg border border-amber-100 mt-1 max-w-sm">
-                        Justificativa de reabertura: &quot;{hist.justificativa}&quot;
+                      <p className="text-xs text-amber-700 bg-amber-50/60 p-2 rounded-lg border border-amber-100 mt-1 max-w-sm">
+                        Justificativa: &quot;{hist.justificativa}&quot;
                       </p>
                     )}
                     <p className="text-[10px] text-gray-400 mt-0.5">
-                      Por {hist.usuario_nome} · {new Date(hist.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} ({new Date(hist.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })})
+                      {new Date(hist.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} ({new Date(hist.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })})
                     </p>
                   </div>
                 </div>
@@ -769,18 +856,38 @@ export default function DetalheNCEngenharia() {
         </div>
       </div>
 
-      {/* ── BARRA INFERIOR DE CTAs (Apple design) ── */}
+      {/* ── BARRA INFERIOR DE CTAs ── */}
       <div className="fixed bottom-0 left-0 right-0 z-40 max-w-md mx-auto px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-[#F4F6FA] via-[#F4F6FA]/90 to-transparent pt-6">
-        <div className="bg-white/80 backdrop-blur-[18px] rounded-[24px] border border-white/50 shadow-[0_4px_24px_rgba(0,0,0,0.06)] p-3 flex flex-col gap-2.5">
+        <div className="bg-white/85 backdrop-blur-[18px] rounded-[24px] border border-white/60 shadow-[0_4px_24px_rgba(0,0,0,0.08)] p-3 flex flex-col gap-2.5">
           
-          {/* Se a NC é de outro técnico, mostra estado inativo */}
-          {temOutroResponsavel ? (
+          {/* Se for coordenador, exibe CTA exclusivo de encerramento da NC */}
+          {ehCoordenador ? (
+            nc.status === 'encerrada' ? (
+              <div className="text-center py-3 bg-emerald-50 border border-emerald-100 rounded-2xl text-xs font-bold text-emerald-700 flex items-center justify-center gap-1.5">
+                <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Não conformidade encerrada</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setMostrarModalConfirmacaoEncerramento(true)}
+                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl text-[13px] font-extrabold text-white bg-gradient-to-b from-[#17A592] to-[#0D8775] hover:brightness-105 active:scale-[0.98] shadow-[0_4px_16px_rgba(23,165,146,0.35)] transition-all cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Encerrar Não Conformidade</span>
+              </button>
+            )
+          ) : temOutroResponsavel ? (
             <div className="text-center py-2 text-xs font-bold text-gray-400">
               Apenas {nc.responsavel_nome} pode interagir com esta NC
             </div>
           ) : (
             <>
-              {/* Botão Primário Dinâmico */}
+              {/* Botão Primário Dinâmico Técnico */}
               {(nc.status === 'aberta' || nc.status === 'correcao_recusada') && (
                 <Botao
                   variante="primario"
@@ -847,67 +954,7 @@ export default function DetalheNCEngenharia() {
                 </div>
               )}
 
-              {/* ── Botão Resolução Direta (Coordenador) ── */}
-              {podeResolverDiretamente && !mostrarFormResolucao && !mostrarFormManutencao && (
-                <button
-                  type="button"
-                  onClick={() => setMostrarFormResolucao(true)}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-full text-xs font-bold text-white bg-gradient-to-b from-[#7C3AED] to-[#6D28D9] border-[3px] border-white/90 shadow-[0_10px_24px_-4px_rgba(124,58,237,0.35)] hover:brightness-105 active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17l-5.384-3.19A2.625 2.625 0 014.5 9.605V6.75a2.625 2.625 0 012.136-2.577l5.384-1.538a2.625 2.625 0 011.46 0l5.384 1.538A2.625 2.625 0 0121 6.75v2.855a2.625 2.625 0 01-1.536 2.375l-5.384 3.19a2.625 2.625 0 01-2.66 0z" />
-                  </svg>
-                  Resolver Diretamente
-                </button>
-              )}
-
-              {/* ── Formulário de Resolução Direta ── */}
-              {mostrarFormResolucao && (
-                <form onSubmit={handleResolverDiretamente} className="space-y-3 animate-[fadeIn_0.2s_ease-out]">
-                  <div className="bg-violet-50 border border-violet-200 rounded-2xl p-3 text-violet-700 text-[11px] font-bold flex items-center gap-2">
-                    <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                    </svg>
-                    Sem técnico ativo no setor {setorNC ? SETORES_LABELS[setorNC] : ''} — resolução direta pelo Coordenador
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-400 tracking-wider uppercase">
-                      Descreva a resolução aplicada
-                    </label>
-                    <textarea
-                      rows={3}
-                      autoFocus
-                      placeholder="Ex: Cabo substituído por reserva do almoxarifado. Equipamento testado e liberado."
-                      value={descricaoResolucao}
-                      onChange={(e) => { setDescricaoResolucao(e.target.value); setErroFormResolucao('') }}
-                      className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/10 resize-none transition-all"
-                    />
-                    {erroFormResolucao && (
-                      <p className="text-[10px] font-bold text-red-500">{erroFormResolucao}</p>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => { setMostrarFormResolucao(false); setDescricaoResolucao(''); setErroFormResolucao('') }}
-                      className="flex-1 py-2.5 rounded-full text-xs font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={!descricaoResolucao.trim()}
-                      className="flex-1 py-2.5 rounded-full text-xs font-bold text-white bg-gradient-to-b from-[#7C3AED] to-[#6D28D9] shadow-[0_6px_16px_-4px_rgba(124,58,237,0.35)] hover:brightness-105 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      Confirmar e Encerrar
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {/* Botão Secundário se não estiver no form ou encerrado */}
+              {/* Botão Secundário para Técnico: Chamar Coordenador */}
               {!mostrarFormManutencao && nc.status !== 'encerrada' && (
                 <button
                   type="button"
@@ -926,7 +973,7 @@ export default function DetalheNCEngenharia() {
                 <button
                   type="button"
                   onClick={handleAssumir}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full text-[11px] font-bold text-[#246BFD] hover:bg-[#246BFD]/5 transition-colors cursor-pointer active:scale-95"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full text-[11px] font-bold text-[#17A592] hover:bg-[#17A592]/5 transition-colors cursor-pointer active:scale-95"
                 >
                   Assumir NC sem iniciar análise
                 </button>
@@ -935,6 +982,117 @@ export default function DetalheNCEngenharia() {
           )}
         </div>
       </div>
+
+      {/* ── MODAL DE CONFIRMAÇÃO DE ENCERRAMENTO (Identidade Primus) ── */}
+      {mostrarModalConfirmacaoEncerramento && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.15s_ease-out]">
+          <div className="bg-white rounded-[28px] p-5 sm:p-6 max-w-md w-full shadow-2xl border border-gray-100 space-y-4">
+            <div className="flex items-center gap-3 pb-1 border-b border-gray-100">
+              <div className="w-10 h-10 rounded-2xl bg-teal-50 border border-teal-100 text-[#17A592] flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-gray-900 tracking-tight">Encerrar Não Conformidade?</h3>
+                <p className="text-xs text-gray-500 font-medium">Confirme os dados antes de finalizar</p>
+              </div>
+            </div>
+
+            {/* Card Visual de Prévia da NC (Identidade Visual Fiel ao Card do Ativo) */}
+            <div className="bg-[#FAFBFD] rounded-[24px] p-4 border border-slate-200/90 shadow-xs space-y-3">
+              {/* Header do Card: Dias na Esquerda, Badges na Direita */}
+              <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-200/60">
+                <span className="text-xs text-slate-500 font-bold font-nunito whitespace-nowrap shrink-0 flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {calcularTempoDesdeAbertura(nc.created_at)}
+                </span>
+                <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                  <span className={`text-[10.5px] font-bold font-nunito px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1 whitespace-nowrap ${
+                    SETORES_CORES[nc.setor_responsavel as SetorTecnico]
+                      ? `${SETORES_CORES[nc.setor_responsavel as SetorTecnico].bg} ${SETORES_CORES[nc.setor_responsavel as SetorTecnico].text} ${SETORES_CORES[nc.setor_responsavel as SetorTecnico].border}`
+                      : 'bg-amber-50 text-amber-800 border-amber-200/80'
+                  }`}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-current opacity-80" />
+                    {SETORES_LABELS[nc.setor_responsavel as SetorTecnico] || 'Engenharia Clínica'}
+                  </span>
+                  <PillTag cor={nc.criticidade === 'critico' ? 'vermelho' : nc.criticidade === 'importante' ? 'laranja' : 'azul'}>
+                    {nc.criticidade === 'critico' ? 'Crítico' : nc.criticidade === 'importante' ? 'Importante' : 'Informativo'}
+                  </PillTag>
+                </div>
+              </div>
+
+              {/* Informações: Foto/Miniatura à ESQUERDA e Texto à DIREITA (Centralizado na Altura) */}
+              <div className="flex items-center gap-3.5">
+                <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-[18px] overflow-hidden border border-slate-200/80 shrink-0 shadow-xs bg-slate-100 flex items-center justify-center">
+                  <img
+                    src={nc.foto_url || obterIconeEquipamento(nc.ativo?.nome, nc.ativo?.categoria)}
+                    alt={nc.ativo?.nome || 'Ativo'}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider font-nunito block leading-none mb-1">
+                    {nc.ativo?.categoria || 'EQUIPAMENTO'}
+                  </span>
+                  <h4 className="text-[15px] font-bold text-slate-900 leading-snug tracking-tight font-nunito truncate">
+                    {nc.ativo?.nome || 'Equipamento'}
+                  </h4>
+                  <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1 font-medium truncate">
+                    <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                    </svg>
+                    <span className="font-bold text-slate-700">{nc.local?.nome || 'Sala'}</span>
+                    <span>•</span>
+                    <span className="text-slate-500">{nc.local?.unidade || 'Unidade de Internação'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Box elegante do Motivo / Problema Relatado */}
+              {(nc.item_execucao?.evidencia_texto || nc.item_execucao?.item_congelado) && (
+                <div className="bg-white rounded-xl px-3 py-2 border border-slate-200/70 text-xs text-slate-700 font-medium leading-relaxed shadow-2xs">
+                  <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Problema relatado</span>
+                  <p className="line-clamp-2">
+                    {nc.item_execucao?.evidencia_texto || nc.item_execucao?.item_congelado}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-gray-500 font-medium leading-relaxed text-center px-2">
+              O status será alterado para <strong className="text-gray-800">Encerrada</strong> e o ativo retornará para condição <strong className="text-emerald-700">Operacional</strong>.
+            </p>
+
+            <div className="flex gap-2.5 pt-1">
+              <button
+                type="button"
+                disabled={encerrando}
+                onClick={() => setMostrarModalConfirmacaoEncerramento(false)}
+                className="flex-1 py-3 rounded-xl text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={encerrando}
+                onClick={executarEncerramentoNC}
+                className="flex-1 py-3 rounded-xl text-xs font-bold text-white bg-gradient-to-b from-[#17A592] to-[#0D8775] hover:brightness-105 shadow-[0_4px_12px_rgba(23,165,146,0.3)] active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                {encerrando ? (
+                  <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  'Sim, Encerrar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── MODAL ZOOM FOTO ── */}
       {fotoZoom && (

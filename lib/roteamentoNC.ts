@@ -58,10 +58,27 @@ export const SETORES_ICONES: Record<SetorTecnico, string> = {
 }
 
 export const SETORES_CORES: Record<SetorTecnico, { bg: string; text: string; border: string }> = {
-  engenharia_clinica: { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200' },
-  manutencao: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200' },
-  farmacia: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200' },
-  almoxarifado: { bg: 'bg-sky-50', text: 'text-sky-600', border: 'border-sky-200' },
+  engenharia_clinica: { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200/80' },
+  manutencao: { bg: 'bg-slate-100', text: 'text-slate-800', border: 'border-slate-300' },
+  farmacia: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+  almoxarifado: { bg: 'bg-[#F2E8E1]', text: 'text-[#6E3516]', border: 'border-[#D9C3B0]' },
+}
+
+/**
+ * Retorna o caminho do ícone/foto oficial de cada equipamento no Primus.
+ */
+export function obterIconeEquipamento(nome?: string, categoria?: string): string {
+  const n = `${nome || ''} ${categoria || ''}`.toLowerCase()
+  if (n.includes('anestesia')) return '/carrinho-anestesia.webp'
+  if (n.includes('parada') || n.includes('carrinho')) return '/carrinho-parada.webp'
+  if (n.includes('bisturi')) return '/bisturi.webp'
+  if (n.includes('aspirador')) return '/aspirador.webp'
+  if (n.includes('bomba') || n.includes('infus')) return '/bomba-infusao.webp'
+  if (n.includes('foco')) return '/foco.webp'
+  if (n.includes('gases') || n.includes('gas')) return '/gas.webp'
+  if (n.includes('mesa') || n.includes('cama') || n.includes('cirurgic') || n.includes('cirúrgic')) return '/cama.webp'
+  if (n.includes('monitor')) return '/monitor.webp'
+  return '/cama.webp'
 }
 
 // ── Todos os tipos e setores (para iteração em selects/chips) ───────

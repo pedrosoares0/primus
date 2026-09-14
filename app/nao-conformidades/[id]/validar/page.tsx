@@ -268,7 +268,7 @@ export default function ValidarNC() {
     return (
       <div className="px-5 pt-10 text-center space-y-4">
         <p className="text-red-500 font-bold">{erro}</p>
-        <Link href="/coordenador" className="inline-block text-[#7C3AED] font-bold">
+        <Link href="/coordenador" className="inline-block text-[#17A592] font-bold">
           Voltar para a fila
         </Link>
       </div>
@@ -295,15 +295,15 @@ export default function ValidarNC() {
   return (
     <div className="min-h-screen bg-[#F4F6FA] pb-32">
       {/* Header compact com botão voltar */}
-      <div className="bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between sticky top-0 z-30">
+      <div className="bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between relative z-30">
         <Link
-          href="/coordenador"
+          href="/coordenador?aba=ncs"
           className="inline-flex items-center gap-1.5 text-[13px] font-bold text-gray-600 hover:text-black transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
-          Fila
+          Voltar para NCs
         </Link>
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">
@@ -531,7 +531,7 @@ export default function ValidarNC() {
                   : hist.status_novo === 'em_correcao'
                   ? 'bg-amber-500 ring-4 ring-amber-100'
                   : hist.status_novo === 'aguardando_validacao'
-                  ? 'bg-[#7C3AED] ring-4 ring-[#7C3AED]/10'
+                  ? 'bg-[#17A592] ring-4 ring-[#17A592]/10'
                   : hist.status_novo === 'encerrada'
                   ? 'bg-emerald-500 ring-4 ring-emerald-100'
                   : 'bg-gray-500 ring-4 ring-gray-100'
@@ -544,7 +544,7 @@ export default function ValidarNC() {
                     <p className="text-xs font-bold text-gray-800">
                       {hist.status_anterior !== hist.status_novo ? (
                         <>
-                          Alterado para <span className="text-[#7C3AED]">{STATUS_LABELS[hist.status_novo as StatusNaoConformidade]}</span>
+                          Alterado para <span className="text-[#17A592]">{STATUS_LABELS[hist.status_novo as StatusNaoConformidade]}</span>
                         </>
                       ) : (
                         <>NC assumida por técnico</>

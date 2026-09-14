@@ -31,8 +31,8 @@ function ThinkingState() {
   return (
     <div className="flex items-center gap-2.5 py-1 px-1 text-slate-500">
       <div className="relative flex items-center justify-center">
-        <OrbIA tamanho={18} />
-        <span className="absolute inset-0 rounded-full bg-sky-400/20 animate-ping" />
+        <OrbIA tamanho={18} estado="thinking" />
+        <span className="absolute inset-0 rounded-full bg-[#2ED2A6]/25 animate-ping" />
       </div>
       <span className="text-[13px] font-normal text-slate-500 tracking-tight animate-pulse">
         Analisando dados do hospital...
@@ -300,8 +300,8 @@ export function ChatIA() {
               {/* Header Limpo & Elegante — Apple Style */}
               <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-slate-100 shrink-0">
                 <div className="flex items-center gap-2.5">
-                  <OrbIA tamanho={26} />
-                  <h2 className="text-sm font-semibold text-slate-900 tracking-tight font-space-grotesk">
+                  <OrbIA tamanho={26} estado={enviando ? 'thinking' : 'idle'} />
+                  <h2 className="text-sm font-semibold text-slate-900 tracking-tight font-brand">
                     Primus IA
                   </h2>
                 </div>
@@ -347,14 +347,14 @@ export function ChatIA() {
                     <div
                       className="relative flex items-center justify-center p-1 rounded-full"
                       style={{
-                        filter: 'drop-shadow(0 8px 20px rgba(26, 115, 242, 0.15))',
+                        filter: 'drop-shadow(0 8px 24px rgba(46, 210, 166, 0.25))',
                       }}
                     >
-                      <OrbIA tamanho={110} />
+                      <OrbIA tamanho={110} estado={enviando ? 'thinking' : 'idle'} />
                     </div>
 
                     <div>
-                      <h3 className="text-base font-semibold text-slate-900 tracking-tight font-space-grotesk">
+                      <h3 className="text-base font-semibold text-slate-900 tracking-tight font-brand">
                         Como posso ajudar?
                       </h3>
                       <p className="text-xs text-slate-500 font-normal mt-1 leading-relaxed max-w-[260px]">

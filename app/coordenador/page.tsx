@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { criarClienteSupabase } from '@/lib/supabase/client'
-import { PainelDashboard } from '@/components/coordenador/PainelDashboard'
+import { PainelDashboard, type PeriodoFiltro } from '@/components/coordenador/PainelDashboard'
 import { FilaValidacaoNCs } from '@/components/coordenador/FilaValidacaoNCs'
 import { GestaoEquipe } from '@/components/coordenador/GestaoEquipe'
 import { GestaoAtivos } from '@/components/coordenador/GestaoAtivos'
@@ -71,9 +71,30 @@ const TITULOS_ABA: Record<AbaCoordenador, { titulo: string; subtitulo: string }>
 
 export default function PaginaCoordenador() {
   const [abaAtiva, setAbaAtiva] = useState<AbaCoordenador>('dashboard')
+  const [periodo, setPeriodo] = useState<PeriodoFiltro>('7d')
   const [hospitalId, setHospitalId] = useState<string>('')
   const [usuarioId, setUsuarioId] = useState<string>('')
   const [carregandoAuth, setCarregandoAuth] = useState(true)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const paramAba = params.get('aba') as AbaCoordenador
+      if (paramAba && ['dashboard', 'ncs', 'equipe', 'ativos'].includes(paramAba)) {
+        setAbaAtiva(paramAba)
+      }
+    }
+  }, [])
+
+  function alternarAba(novaAba: AbaCoordenador) {
+    setAbaAtiva(novaAba)
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.set('aba', novaAba)
+      window.history.replaceState(null, '', url.toString())
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   useEffect(() => {
     async function carregarUsuario() {
@@ -136,7 +157,7 @@ export default function PaginaCoordenador() {
       {/* Header com Título e Seletor de Abas Desktop */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight font-space-grotesk">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight font-space-grotesk">
             {titulo}
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 font-medium mt-0.5">
@@ -146,6 +167,38 @@ export default function PaginaCoordenador() {
 
         {/* Seletor de Abas Desktop + Botão Orb ao lado fora da barra */}
         <div className="hidden md:flex items-center gap-3">
+          {/* Extensão de Período Desktop (quando no dashboard) */}
+          {abaAtiva === 'dashboard' && (
+            <div className="flex items-center bg-white/70 backdrop-blur-[24px] saturate-[180%] p-1 rounded-full border border-white/80 shadow-xs gap-0.5">
+              {([
+                { id: '7d', label: '7 dias' },
+                { id: '15d', label: '15 dias' },
+                { id: '30d', label: '30 dias' },
+              ] as const).map((opt) => {
+                const ativo = periodo === opt.id
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setPeriodo(opt.id)}
+                    className={`relative z-10 py-1.5 px-3 rounded-full cursor-pointer text-xs font-bold transition-colors select-none ${
+                      ativo ? 'text-[#17A592] font-extrabold' : 'text-slate-400 hover:text-slate-700'
+                    }`}
+                  >
+                    {ativo && (
+                      <motion.div
+                        layoutId="periodoAtivoDesktopBubble"
+                        transition={{ type: 'spring', bounce: 0.22, duration: 0.42 }}
+                        className="absolute inset-0 bg-[#17A592]/15 rounded-full shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.8),inset_0_0_0_1px_rgba(23,165,146,0.25)] -z-10"
+                      />
+                    )}
+                    <span>{opt.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
           <div className="flex items-center bg-slate-200/70 p-1.5 rounded-full gap-1 border border-slate-200/80 shadow-inner relative">
             {ABAS.map((aba) => {
               const ativa = abaAtiva === aba.id
@@ -158,7 +211,7 @@ export default function PaginaCoordenador() {
                     window.scrollTo({ top: 0, behavior: 'smooth' })
                   }}
                   className={`relative z-10 flex items-center gap-2 py-2 px-4.5 rounded-full cursor-pointer text-xs font-bold transition-colors duration-200 select-none ${
-                    ativa ? 'text-slate-900' : 'text-slate-500 hover:text-slate-800'
+                    ativa ? 'text-[#17A592]' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
                   {ativa && (
@@ -168,7 +221,7 @@ export default function PaginaCoordenador() {
                       className="absolute inset-0 bg-white rounded-full shadow-[0_3px_12px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)] border border-slate-100/80 -z-10"
                     />
                   )}
-                  <div className={`w-4 h-4 transition-colors duration-200 ${ativa ? 'text-sky-600' : 'text-slate-400'}`}>
+                  <div className={`w-4 h-4 transition-colors duration-200 ${ativa ? 'text-[#17A592]' : 'text-slate-400'}`}>
                     {aba.icone}
                   </div>
                   <span className="font-extrabold">{aba.label}</span>
@@ -192,7 +245,7 @@ export default function PaginaCoordenador() {
       {/* Conteúdo das Abas com Persistência em Memória (Keep-Alive & Prefetch) */}
       <div className="w-full">
         <div className={abaAtiva === 'dashboard' ? 'block animate-fadeIn' : 'hidden'}>
-          <PainelDashboard hospitalId={hospitalId} />
+          <PainelDashboard hospitalId={hospitalId} periodo={periodo} onPeriodoChange={setPeriodo} />
         </div>
         <div className={abaAtiva === 'ncs' ? 'block animate-fadeIn' : 'hidden'}>
           <FilaValidacaoNCs hospitalId={hospitalId} usuarioId={usuarioId} />
@@ -209,8 +262,48 @@ export default function PaginaCoordenador() {
           NAV INFERIOR — APENAS MOBILE (md:hidden)
           BARRA DE ABAS TERMINA EM ATIVOS + ORB GLASSMORPHIC
          ══════════════════════════════════════════════════ */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto px-4 pb-[max(0.65rem,env(safe-area-inset-bottom))] pointer-events-none">
-        <div className="flex items-center gap-2 pointer-events-auto">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto px-4 pb-[max(0.65rem,env(safe-area-inset-bottom))] pointer-events-none flex flex-col items-start gap-1.5">
+        {/* Extensão superior da navbar: Filtro de Período (alinhado à esquerda) */}
+        {abaAtiva === 'dashboard' && (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+            transition={{ type: 'spring', bounce: 0.22, duration: 0.35 }}
+            className="pointer-events-auto"
+          >
+            <div className="inline-flex items-center bg-white/70 backdrop-blur-[24px] saturate-[180%] rounded-full border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.1),inset_0_1px_1px_rgba(255,255,255,0.8)] p-1 gap-0.5">
+              {([
+                { id: '7d', label: '7 dias' },
+                { id: '15d', label: '15 dias' },
+                { id: '30d', label: '30 dias' },
+              ] as const).map((opt) => {
+                const ativo = periodo === opt.id
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setPeriodo(opt.id)}
+                    className={`relative z-10 py-1 px-3 rounded-full cursor-pointer text-[10.5px] font-extrabold transition-colors duration-200 select-none ${
+                      ativo ? 'text-[#17A592] font-black' : 'text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    {ativo && (
+                      <motion.div
+                        layoutId="periodoAtivoMobileBubble"
+                        transition={{ type: 'spring', bounce: 0.22, duration: 0.42 }}
+                        className="absolute inset-0 bg-[#17A592]/15 rounded-full shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.8),inset_0_0_0_1px_rgba(23,165,146,0.25)] -z-10"
+                      />
+                    )}
+                    <span>{opt.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        <div className="flex items-center gap-2 pointer-events-auto w-full">
           {/* Navbar inferior (Dashboard até Ativos) */}
           <nav className="flex-1 bg-white/70 backdrop-blur-[24px] saturate-[180%] rounded-full border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.1),inset_0_1px_1px_rgba(255,255,255,0.8)] p-1.5">
             <div className="flex items-center justify-between gap-1 relative">
@@ -220,22 +313,19 @@ export default function PaginaCoordenador() {
                   <button
                     key={aba.id}
                     type="button"
-                    onClick={() => {
-                      setAbaAtiva(aba.id)
-                      window.scrollTo({ top: 0, behavior: 'smooth' })
-                    }}
+                    onClick={() => alternarAba(aba.id)}
                     className={`relative z-10 flex-1 flex flex-col items-center justify-center py-1.5 px-2 rounded-full cursor-pointer transition-colors duration-200 select-none active:scale-95 ${
-                      ativa ? 'text-slate-900 font-black' : 'text-slate-400 hover:text-slate-600'
+                      ativa ? 'text-[#17A592] font-black' : 'text-slate-400 hover:text-slate-600'
                     }`}
                   >
                     {ativa && (
                       <motion.div
                         layoutId="abaAtivaMobileBubble"
                         transition={{ type: 'spring', bounce: 0.22, duration: 0.42 }}
-                        className="absolute inset-0 bg-slate-900/10 rounded-full shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.8),inset_0_0_0_1px_rgba(15,23,42,0.1)] -z-10"
+                        className="absolute inset-0 bg-gradient-to-b from-[#17A592]/20 to-[#17A592]/10 rounded-full shadow-[0_3px_10px_rgba(23,165,146,0.18),inset_0_1px_1.5px_rgba(255,255,255,0.8),inset_0_0_0_1px_rgba(23,165,146,0.22)] -z-10"
                       />
                     )}
-                    <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                    <div className={`w-5 h-5 flex items-center justify-center shrink-0 ${ativa ? 'text-[#17A592]' : 'text-slate-400'}`}>
                       {aba.icone}
                     </div>
                     <span className="text-[9.5px] font-bold tracking-wide mt-0.5">{aba.label}</span>

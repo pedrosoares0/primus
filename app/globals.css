@@ -1,10 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Space+Grotesk:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap');
 @import 'tailwindcss';
 
 /* ================================================================
    PRIMUS — Design System Clean & Refinado
    Background: #F4F6FA
    Sombras ultra-suaves, cards minimalistas, badges limpos
+   Tipografia Oficial: Nunito & SF Pro Display
    ================================================================ */
 
 .font-nunito, .font-round, .font-metric {
@@ -12,10 +13,9 @@
   font-optical-sizing: auto;
 }
 
-.font-brand, .font-space-grotesk {
-  font-family: "Space Grotesk", sans-serif;
+.font-brand, .font-space-grotesk, .font-sf {
+  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
   font-optical-sizing: auto;
-  font-weight: 600;
   font-style: normal;
 }
 

@@ -1,8 +1,8 @@
 # 📖 PRIMUS — Documento de Referência Completo ("A Bíblia")
 
-> **Última atualização**: 28 de Agosto de 2026  
-> **Versão do projeto**: 0.2.0  
-> **Stack**: Next.js 16 · React 19 · Supabase · Tailwind CSS 4 · TypeScript 5 · Google Gemini IA · WebGPU / WebGL
+> **Última atualização**: 14 de Setembro de 2026  
+> **Versão do projeto**: 0.3.0  
+> **Stack**: Next.js 16 · React 19 · Supabase · Tailwind CSS 4 · TypeScript 5 · Google Gemini IA · WebGL Fluid Shader
 
 ---
 
@@ -124,8 +124,7 @@ primus/
 │   │   ├── IconeMascote.tsx    # Ícone mascote "blop" do Primus
 │   │   ├── ItemLista.tsx       # Item de lista com seta
 │   │   ├── LenisProvider.tsx   # Provider de smooth scroll
-│   │   ├── OrbIA.tsx           # Glass Liquid Orb com shader WebGPU (WGSL) e fallback WebGL
-│   │   ├── orbIAShader.ts      # Fonte WGSL do shader Frost Liquid Orb
+│   │   ├── OrbIA.tsx           # Fluid Orb WebGL com gradiente #FFFFFF → #2ED2A6 e FBM domain warping
 │   │   ├── ai-chat-input.tsx   # Input de chat em formato de cápsula redonda e botão circular
 │   │   ├── response-stream.tsx # Streaming typewriter para respostas da IA
 │   │   ├── PillTag.tsx         # Badge/pill colorido (verde, laranja, vermelho, azul, cinza)
@@ -483,7 +482,15 @@ Categorias existentes: Carrinho de parada, Carrinho de anestesia, Monitor multip
 4 abas em **keep-alive** (componentes montados em paralelo, visibilidade via CSS):
 
 1. **Painel** (`PainelDashboard.tsx`): Métricas de NCs, gráficos, timeline de atividade recente.
-2. **NCs** (`FilaValidacaoNCs.tsx`): Fila de validação — aprovar ou rejeitar correções feitas pela engenharia.
+2. **NCs** (`FilaValidacaoNCs.tsx`): Fila de Não Conformidades simplificada e intuitiva:
+   - **Filtros diretos**: Apenas **Abertas** e **Encerradas** (eliminando redundâncias).
+   - **Layout dos Cards**:
+     - Miniatura da foto da NC à esquerda (tamanho ampliado, centralizada com fallback do ícone do ativo).
+     - Tempo decorrido em dias à esquerda.
+     - Hierarquia de badges à direita: linha superior para **Tipo de NC** e linha inferior para **Encaminhado para: [Setor]**.
+     - Cores dos badges de setor 100% alinhadas ao padrão do Inspetor (Engenharia Clínica = Vermelho, Manutenção = Âmbar, Farmácia = Esmeralda, Almoxarifado = Azul).
+     - Remoção de ruídos e dados irrelevantes (códigos técnicos internos de QR, redundância de local/ativo).
+   - **Confirmação Visual de Encerramento**: Modal de encerramento exibe preview card da NC para conferência antes da finalização.
 3. **Equipe** (`GestaoEquipe.tsx`): Lista de inspetores e técnicos, status de cada um.
 4. **Ativos** (`GestaoAtivos.tsx`): Lista de equipamentos com status, QR codes, patrimônio.
 
@@ -631,14 +638,15 @@ Chaves principais:
 | Perfil | Cor primária | Uso |
 |---|---|---|
 | Inspetor | `#246BFD` (azul) | Nav inferior, badges |
-| Coordenador | `#7C3AED` (roxo) | Nav inferior, badges |
+| Coordenador | `#17A592` / `#2ED29E` (verde da marca) | Nav inferior, badges, seletores, destaques (unificado com a logo) |
 | Engenharia | `#F59E0B` (âmbar) | Header status |
 
 ### Tipografia
 
-- **Corpo**: `-apple-system`, `SF Pro Display`, sistema
-- **Brand** (`.font-brand`): `Space Grotesk` (weight 600-700) — usado no logo "Primus"
-- **Round** (`.font-round`): `Nunito` (weight 700-900) — headers arredondados
+O sistema utiliza estritamente **2 fontes** para manter clareza e hierarquia limpa sem poluição visual:
+- **Corpo & Interface**: `SF Pro Display` (pesos calibrados — regular, medium e semibold moderado para evitar títulos pesados ou extra bold agressivo)
+- **Destaques & Brand**: `Nunito` (weight 700-900) — headers amigáveis e números em destaque
+*(A fonte `Space Grotesk` foi eliminada para sanar inconsistências visuais e unificar a identidade).*
 
 ### Sombras
 
@@ -673,7 +681,7 @@ Chaves principais:
 |---|---|---|
 | `Botao` | `components/ui/Botao.tsx` | Botão com variantes `primario`, `secundario`, `perigo`, `fantasma` |
 | `LiquidMetalButton` | `components/ui/liquid-metal-button.tsx` | Botão premium com shader WebGL de liquid metal |
-| `OrbIA` | `components/ui/OrbIA.tsx` | Glass Liquid Orb animado via WebGPU (WGSL) com fallback WebGL |
+| `OrbIA` | `components/ui/OrbIA.tsx` | Fluid Orb orgânico com shader WebGL (gradiente `#FFFFFF` → `#2ED2A6`, FBM domain warping) |
 | `AIChatInput` | `components/ui/ai-chat-input.tsx` | Input de chat em formato de cápsula redonda (`rounded-full`) e botão circular de envio (`ArrowUp`) |
 | `ResponseStream` | `components/ui/response-stream.tsx` | Componente de typewriter streaming para respostas da IA |
 | `PillTag` | `components/ui/PillTag.tsx` | Badge colorido: `verde`, `laranja`, `vermelho`, `azul`, `cinza` |
@@ -719,11 +727,10 @@ O **Primus IA** é o copiloto inteligente em tempo real exclusivo para o perfil 
 - Respostas transmitidas caractere a caractere diretamente para o componente `ResponseStream`.
 - Parser de Markdown com formatação estruturada de listas identadas (`•`), badges coloridos para NCs (`NC-2026-E009`) e pills de criticidade (*Crítica*, *Importante*, *Informativa*).
 
-### 13.4 Interface & Liquid Glass Orb
+### 13.4 Interface & Fluid Orb WebGL
 
 - **Botão de Ativação**: Posicionado organicamente fora da barra de abas, ao lado direito de "Ativos" no Desktop e Mobile.
-- **Shader WebGPU (Frost Preset - Style 15)**: Implementado em WGSL com simulação de fluxo óptico e vidro líquido.
-- **Fallback WebGL**: Para dispositivos móveis ou navegadores sem WebGPU ativo, um shader WebGL de alta fidelidade é executado com paridade visual instantânea.
+- **Shader WebGL Fluid Orb**: Shader procedural orgânico de altíssimo desempenho com ruído FBM, distorção de domínio (*domain warping*) e gradiente marmorizado fluido (`#FFFFFF` no topo cristalino → `#2ED2A6` na base esmeralda), com máscara circular antialiased (smoothstep).
 - **Chat Drawer**: Painel deslizante com fundo em Glassmorphism translúcido (`backdrop-blur-[24px]`).
 
 ---
@@ -733,7 +740,7 @@ O **Primus IA** é o copiloto inteligente em tempo real exclusivo para o perfil 
 ### ✅ Implementado e Funcional
 
 - Login e cadastro com Supabase Auth real e tradução humanizada de erros
-- **Módulo Primus IA** completo com streaming SSE, contexto em tempo real e WebGPU Glass Liquid Orb
+- **Módulo Primus IA** completo com streaming SSE, contexto em tempo real e Fluid Orb WebGL orgânico
 - Dashboard do Inspetor com lista de salas (dados reais do Supabase)
 - Scanner QR via câmera do dispositivo (BarcodeDetector API)
 - Execução completa de checklist com persistência no Supabase

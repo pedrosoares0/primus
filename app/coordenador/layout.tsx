@@ -135,7 +135,7 @@ export default function LayoutCoordenador({
   return (
     <div className="min-h-[100dvh] flex flex-col bg-[#F4F6FA] w-full relative">
       {/* Header Responsivo */}
-      <header className="sticky top-0 z-50 bg-[#F4F6FA]/90 backdrop-blur-md border-b border-gray-200/50 px-4 sm:px-6 lg:px-8 py-3.5">
+      <header className="relative z-50 bg-[#F4F6FA] border-b border-gray-200/50 px-4 sm:px-6 lg:px-8 py-3.5">
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/coordenador" className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight hover:opacity-80 transition-opacity font-brand flex items-center gap-2.5">
@@ -150,7 +150,7 @@ export default function LayoutCoordenador({
                   className="h-8 sm:h-9 w-auto object-contain"
                 />
               </div>
-              <span className="hidden sm:inline-flex text-[11px] font-extrabold text-purple-700 bg-purple-100/80 px-2.5 py-0.5 rounded-full border border-purple-200/60 uppercase tracking-wider">
+              <span className="hidden sm:inline-flex text-[11px] font-extrabold text-[#17A592] bg-[#17A592]/10 px-2.5 py-0.5 rounded-full border border-[#17A592]/20 uppercase tracking-wider">
                 Coordenação
               </span>
             </Link>
@@ -165,8 +165,8 @@ export default function LayoutCoordenador({
               status={[
                 'Coordenador(a)',
                 'Hosp. Piem. Paraguaçu',
-                <span key="online" className="flex items-center gap-1 text-purple-600 font-semibold">
-                  <span className="size-1.5 rounded-full bg-purple-500 animate-pulse" />
+                <span key="online" className="flex items-center gap-1 text-[#17A592] font-semibold">
+                  <span className="size-1.5 rounded-full bg-[#17A592] animate-pulse" />
                   Painel Ativo
                 </span>
               ]}

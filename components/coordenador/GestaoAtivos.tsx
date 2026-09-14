@@ -441,7 +441,7 @@ export function GestaoAtivos({ hospitalId }: GestaoAtivosProps) {
       <div className="space-y-4">
         <div className="flex items-center justify-between px-1.5">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-black text-slate-900 tracking-tight">Equipamentos Alocados por Sala</h3>
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">Equipamentos Alocados por Sala</h3>
             <span className="text-[11px] font-bold text-slate-400">
               ({salasFiltradas.reduce((acc, s) => acc + s.ativos.length, 0)} no total)
             </span>
@@ -497,7 +497,7 @@ export function GestaoAtivos({ hospitalId }: GestaoAtivosProps) {
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-[16px] font-black text-slate-900 tracking-tight truncate">
+                          <h4 className="text-[16px] font-bold text-slate-900 tracking-tight truncate">
                             {sala.nome}
                           </h4>
                           {/* Badge de Status da Sala (como no inspetor) */}
@@ -564,7 +564,7 @@ export function GestaoAtivos({ hospitalId }: GestaoAtivosProps) {
                                       </PillTag>
                                     </div>
                                     {compartilhado && (
-                                      <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/60 inline-flex items-center whitespace-nowrap">
+                                      <span className="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-[#17A592]/10 text-[#17A592] border border-[#17A592]/20 inline-flex items-center whitespace-nowrap">
                                         Salas 1, 3 e 4
                                       </span>
                                     )}
