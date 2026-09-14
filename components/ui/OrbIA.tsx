@@ -73,12 +73,18 @@ void main() {
   float shade = clamp(g + (f - 0.5) * 0.8 * anchor, 0.0, 1.0);
 
   vec3 top = u_topColor;
-  vec3 light = mix(top, u_color, 0.5);
+  // Meio-tom suave fosco (névoa mineral/sage sem saturação neon)
+  vec3 mid = mix(top, u_color, 0.55);
+  mid.g *= 0.96;
+  
   vec3 dark = u_color;
+  // Base profunda aveludada (evita sensação de marca-texto)
+  vec3 deep = u_color * 0.70;
 
   vec3 col = top;
-  col = mix(col, light, smoothstep(0.28, 0.52, shade));
-  col = mix(col, dark, smoothstep(0.58, 0.88, shade));
+  col = mix(col, mid, smoothstep(0.26, 0.52, shade));
+  col = mix(col, dark, smoothstep(0.52, 0.80, shade));
+  col = mix(col, deep, smoothstep(0.80, 1.0, shade));
 
   float edge = smoothstep(0.5, 0.49, distance(uv, vec2(0.5)));
 
@@ -111,7 +117,7 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
 
 const FluidOrb = ({
   size = 240,
-  color = '#2ED2A6',
+  color = '#0F766E',
   topColor = '#FFFFFF',
   className,
   style,
@@ -217,7 +223,7 @@ export function OrbIA({
   tamanho = 36,
   estado = 'idle',
   className = '',
-  color = '#2ED2A6',
+  color = '#0F766E',
   topColor = '#FFFFFF',
 }: OrbIAProps) {
   return (

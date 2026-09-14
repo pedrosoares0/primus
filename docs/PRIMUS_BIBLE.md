@@ -124,7 +124,7 @@ primus/
 │   │   ├── IconeMascote.tsx    # Ícone mascote "blop" do Primus
 │   │   ├── ItemLista.tsx       # Item de lista com seta
 │   │   ├── LenisProvider.tsx   # Provider de smooth scroll
-│   │   ├── OrbIA.tsx           # Fluid Orb WebGL com gradiente #FFFFFF → #2ED2A6 e FBM domain warping
+│   │   ├── OrbIA.tsx           # Fluid Orb WebGL com gradiente #FFFFFF → #0F766E e FBM domain warping
 │   │   ├── ai-chat-input.tsx   # Input de chat em formato de cápsula redonda e botão circular
 │   │   ├── response-stream.tsx # Streaming typewriter para respostas da IA
 │   │   ├── PillTag.tsx         # Badge/pill colorido (verde, laranja, vermelho, azul, cinza)
@@ -681,7 +681,7 @@ O sistema utiliza estritamente **2 fontes** para manter clareza e hierarquia lim
 |---|---|---|
 | `Botao` | `components/ui/Botao.tsx` | Botão com variantes `primario`, `secundario`, `perigo`, `fantasma` |
 | `LiquidMetalButton` | `components/ui/liquid-metal-button.tsx` | Botão premium com shader WebGL de liquid metal |
-| `OrbIA` | `components/ui/OrbIA.tsx` | Fluid Orb orgânico com shader WebGL (gradiente `#FFFFFF` → `#2ED2A6`, FBM domain warping) |
+| `OrbIA` | `components/ui/OrbIA.tsx` | Fluid Orb orgânico com shader WebGL (gradiente `#FFFFFF` → `#0F766E`, FBM domain warping) |
 | `AIChatInput` | `components/ui/ai-chat-input.tsx` | Input de chat em formato de cápsula redonda (`rounded-full`) e botão circular de envio (`ArrowUp`) |
 | `ResponseStream` | `components/ui/response-stream.tsx` | Componente de typewriter streaming para respostas da IA |
 | `PillTag` | `components/ui/PillTag.tsx` | Badge colorido: `verde`, `laranja`, `vermelho`, `azul`, `cinza` |
@@ -730,7 +730,7 @@ O **Primus IA** é o copiloto inteligente em tempo real exclusivo para o perfil 
 ### 13.4 Interface & Fluid Orb WebGL
 
 - **Botão de Ativação**: Posicionado organicamente fora da barra de abas, ao lado direito de "Ativos" no Desktop e Mobile.
-- **Shader WebGL Fluid Orb**: Shader procedural orgânico de altíssimo desempenho com ruído FBM, distorção de domínio (*domain warping*) e gradiente marmorizado fluido (`#FFFFFF` no topo cristalino → `#2ED2A6` na base esmeralda), com máscara circular antialiased (smoothstep).
+- **Shader WebGL Fluid Orb**: Shader procedural orgânico de altíssimo desempenho com ruído FBM, distorção de domínio (*domain warping*) e gradiente marmorizado fluido (`#FFFFFF` no topo cristalino → `#0F766E` na base esmeralda botânica profunda), com máscara circular antialiased (smoothstep).
 - **Chat Drawer**: Painel deslizante com fundo em Glassmorphism translúcido (`backdrop-blur-[24px]`).
 
 ---
