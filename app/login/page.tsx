@@ -10,6 +10,7 @@ import { LiquidMetalButton } from '@/components/ui/liquid-metal-button'
 import { criarClienteSupabase } from '@/lib/supabase/client'
 
 import { Avatar } from '@/components/ui/Avatar'
+import Aurora from '@/components/ui/Aurora'
 import { traduzirErroAuth } from '@/lib/tratarErrosAuth'
 
 type PerfilUsuario = 'inspetor' | 'coordenador' | 'engenharia'
@@ -192,13 +193,8 @@ function FormularioLogin() {
   }
 
   return (
-    <div 
-      style={{
-        background: 'radial-gradient(135% 520px at 50% -30px, #C3FFE7 0%, rgba(195, 255, 231, 0.5) 45%, rgba(195, 255, 231, 0.08) 75%, transparent 100%), #FAFAFC'
-      }}
-      className="min-h-[100dvh] flex flex-col items-center justify-center px-5 py-8 select-none"
-    >
-      <div className="w-full max-w-sm space-y-8 animate-[fadeIn_0.3s_ease-out]">
+    <div className="relative min-h-[100dvh] flex flex-col items-center justify-center px-5 py-8 select-none bg-[#F2F4F7] overflow-hidden">
+      <div className="relative z-10 w-full max-w-sm space-y-8 animate-[fadeIn_0.3s_ease-out]">
         
         {/* Cabeçalho de Identidade */}
         <div className="text-center flex flex-col items-center">
@@ -206,11 +202,11 @@ function FormularioLogin() {
             <Image
               src="/idvisual/logo.webp?v=2"
               alt="Primus"
-              width={200}
-              height={45}
+              width={190}
+              height={42}
               unoptimized
               priority
-              className="h-12 w-auto object-contain"
+              className="h-11 w-auto object-contain"
             />
           </div>
 
@@ -398,6 +394,26 @@ function FormularioLogin() {
           </form>
         </div>
 
+      </div>
+
+      {/* Efeito Aurora no rodapé da tela (de baixo para cima) */}
+      <div
+        className="pointer-events-none absolute bottom-0 left-0 right-0 h-[340px] max-h-[45vh] overflow-hidden z-0"
+        style={{
+          maskImage: 'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 100%)',
+          WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 100%)',
+        }}
+      >
+        <div className="w-full h-full transform scale-y-[-1]">
+          <Aurora
+            colorStops={["#2ED29E", "#e0fff3", "#5fd0d6"]}
+            blend={0.7}
+            amplitude={0.7}
+            speed={0.7}
+            opacity={0.45}
+            bgColor="#F2F4F7"
+          />
+        </div>
       </div>
     </div>
   )

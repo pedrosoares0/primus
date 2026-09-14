@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, Camera, Image as ImageIcon, X, ArrowRight, SwitchCamera, Zap, ZapOff } from 'lucide-react'
+import { ChevronLeft, Camera, Image as ImageIcon, X, SwitchCamera, Zap, ZapOff } from 'lucide-react'
 import { LiquidMetalButton } from '@/components/ui/liquid-metal-button'
 import { Avatar, AvatarPerfil } from '@/components/ui/Avatar'
 import { criarClienteSupabase } from '@/lib/supabase/client'
@@ -14,7 +14,7 @@ const ROLES = [
   { 
     valor: 'inspetor', 
     label: 'Inspetor', 
-    desc: 'Enfermagem / Campo',
+    desc: 'Checagem',
     avatarUrl: 'https://heroui-assets.nyc3.cdn.digitaloceanspaces.com/avatars/blue.jpg',
     fallback: 'IN' 
   },
@@ -85,8 +85,8 @@ function base64ToBlob(base64: string): Blob {
 export default function PaginaCadastro() {
   const router = useRouter()
   
-  // Controle de Etapa (1 = Dados e Cargo, 2 = Foto e Senha)
-  const [etapa, setEtapa] = useState<1 | 2>(1)
+  // Controle de Etapa (1 = Identificação, 2 = Hospital & Perfil, 3 = Personalização)
+  const [etapa, setEtapa] = useState<1 | 2 | 3>(1)
 
   // Etapa 1: Dados Profissionais e Cargo
   const [nomeCompleto, setNomeCompleto] = useState('')
@@ -295,7 +295,7 @@ export default function PaginaCadastro() {
     setFotoPreview(null)
   }
 
-  // Avançar da Etapa 1 para a Etapa 2
+  // Avançar da Etapa 1 para a Etapa 2 (Identificação e Senha)
   function handleAvancarEtapa1(e: React.FormEvent) {
     e.preventDefault()
     setErro(null)
@@ -310,15 +310,38 @@ export default function PaginaCadastro() {
       return
     }
 
-    if (perfilSelecionado === 'tecnico' && !setorSelecionado) {
-      setErro('Por favor, selecione o seu setor técnico.')
+    if (senha.length < 6) {
+      setErro('A senha deve ter pelo menos 6 caracteres.')
+      return
+    }
+
+    if (senha !== confirmarSenha) {
+      setErro('As senhas não coincidem.')
       return
     }
 
     setEtapa(2)
   }
 
-  // Concluir cadastro na Etapa 2
+  // Avançar da Etapa 2 para a Etapa 3 (Hospital e Cargo)
+  function handleAvancarEtapa2(e: React.FormEvent) {
+    e.preventDefault()
+    setErro(null)
+
+    if (!hospitalId) {
+      setErro('Por favor, selecione seu hospital.')
+      return
+    }
+
+    if (perfilSelecionado === 'tecnico' && !setorSelecionado) {
+      setErro('Por favor, selecione o seu setor técnico.')
+      return
+    }
+
+    setEtapa(3)
+  }
+
+  // Concluir cadastro na Etapa 3 (Personalização)
   async function handleCadastrar(e: React.FormEvent) {
     e.preventDefault()
     setErro(null)
@@ -367,6 +390,14 @@ export default function PaginaCadastro() {
 
       setSucesso('Conta criada com sucesso!')
 
+      // Se o signUp não iniciou a sessão automaticamente, faz signIn para garantir cookie de sessão ativo
+      if (!data.session) {
+        await supabase.auth.signInWithPassword({
+          email,
+          password: senha,
+        })
+      }
+
       // 2. Se o usuário enviou foto, tenta persistir no Supabase Storage oficial (bucket avatars)
       let avatarPersistido: string | null = null
       if (fotoPreview) {
@@ -401,7 +432,7 @@ export default function PaginaCadastro() {
           email: email,
           perfil: perfilSelecionado,
           hospital_id: hospitalId,
-          numero_conselho: numeroConselho,
+          numero_conselho: numeroConselho || null,
           setor: perfilSelecionado === 'tecnico' ? (setorSelecionado || 'engenharia_clinica') : null,
           avatar_url: avatarPersistido,
         }
@@ -409,12 +440,18 @@ export default function PaginaCadastro() {
         try {
           const { error: upsertErr } = await supabase.from('usuarios').upsert(payloadUsuario)
           if (upsertErr) {
-            console.warn('Aviso no upsert de usuarios com avatar_url:', upsertErr)
-            delete payloadUsuario.avatar_url
-            await supabase.from('usuarios').upsert(payloadUsuario)
+            // Se falhar no upsert direto por RLS, atualiza a linha já gerada pelo trigger do banco
+            await supabase.from('usuarios').update({
+              nome: nomeCompleto,
+              perfil: perfilSelecionado,
+              hospital_id: hospitalId,
+              numero_conselho: numeroConselho || null,
+              setor: perfilSelecionado === 'tecnico' ? (setorSelecionado || 'engenharia_clinica') : null,
+              avatar_url: avatarPersistido,
+            }).eq('id', data.user.id)
           }
         } catch (dbErr) {
-          console.error('Erro ao upsertar na tabela usuarios:', dbErr)
+          console.error('Erro ao sincronizar tabela usuarios:', dbErr)
         }
 
         // 4. Cache local para carregamento instantâneo da pill (0ms) no primeiro acesso
@@ -459,12 +496,7 @@ export default function PaginaCadastro() {
   const hospitalNome = hospitalSelecionado ? hospitalSelecionado.nome : 'Hospital Geral'
 
   return (
-    <div 
-      style={{
-        background: 'radial-gradient(135% 520px at 50% -30px, #C3FFE7 0%, rgba(195, 255, 231, 0.5) 45%, rgba(195, 255, 231, 0.08) 75%, transparent 100%), #FAFAFC'
-      }}
-      className="min-h-[100dvh] flex flex-col items-center justify-center px-5 py-8 select-none"
-    >
+    <div className="min-h-[100dvh] flex flex-col items-center justify-center px-5 py-8 select-none bg-[#F2F4F7]">
       <div className="w-full max-w-sm space-y-5 animate-[fadeIn_0.3s_ease-out]">
         
         {/* Topo com Botão Voltar contextual e Título */}
@@ -472,7 +504,7 @@ export default function PaginaCadastro() {
           {etapa === 1 ? (
             <Link
               href="/login"
-              className="absolute left-0 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.04)] text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:scale-95 transition-all cursor-pointer"
+              className="absolute left-0 top-0.5 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.04)] text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:scale-95 transition-all cursor-pointer"
               aria-label="Voltar para login"
               title="Voltar para Login"
             >
@@ -483,11 +515,11 @@ export default function PaginaCadastro() {
               type="button"
               onClick={() => {
                 setErro(null)
-                setEtapa(1)
+                setEtapa((prev) => (prev === 3 ? 2 : 1) as 1 | 2 | 3)
               }}
-              className="absolute left-0 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.04)] text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:scale-95 transition-all cursor-pointer"
+              className="absolute left-0 top-0.5 inline-flex items-center justify-center w-10 h-10 rounded-full bg-white border border-gray-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.04)] text-gray-600 hover:text-gray-900 hover:bg-gray-50 active:scale-95 transition-all cursor-pointer"
               aria-label="Voltar para a etapa anterior"
-              title="Voltar para Etapa 1"
+              title="Voltar para a etapa anterior"
             >
               <ChevronLeft className="w-5 h-5 text-gray-700" />
             </button>
@@ -497,25 +529,43 @@ export default function PaginaCadastro() {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
               Criar Conta
             </h1>
-            <p className="text-xs sm:text-sm text-gray-400 font-semibold mt-0.5 leading-snug">
-              Cadastre o seu perfil na plataforma <span className="font-brand font-bold text-gray-700">Primus</span>
+            <p className="text-xs sm:text-[13px] text-gray-500 font-medium mt-1 leading-relaxed max-w-[280px] mx-auto">
+              Junte-se à prontidão cirúrgica. Suas checagens garantem equipamentos seguros e protegem vidas a cada procedimento.
             </p>
           </div>
         </div>
 
-        {/* Indicador de Etapas / Progress Bar */}
+        {/* Indicador de Etapas / Progress Bar 3D */}
         <div className="space-y-1.5 px-1">
           <div className="flex items-center justify-between text-[11px] font-bold text-gray-500">
             <span className={etapa === 1 ? 'text-[#17A592]' : 'text-gray-400'}>
-              1. Identificação & Cargo
+              1. Identificação
             </span>
             <span className={etapa === 2 ? 'text-[#17A592]' : 'text-gray-400'}>
-              2. Foto & Senha
+              2. Hospital & Perfil
+            </span>
+            <span className={etapa === 3 ? 'text-[#17A592]' : 'text-gray-400'}>
+              3. Personalização
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className={`h-1.5 rounded-full transition-all duration-300 ${etapa >= 1 ? 'bg-[#17A592]' : 'bg-gray-200'}`} />
-            <div className={`h-1.5 rounded-full transition-all duration-300 ${etapa === 2 ? 'bg-[#17A592]' : 'bg-gray-200'}`} />
+          <div className="grid grid-cols-3 gap-2">
+            {[1, 2, 3].map((num) => {
+              const ativo = etapa >= num
+              return (
+                <div
+                  key={num}
+                  className={`h-2 rounded-full transition-all duration-400 ease-out relative overflow-hidden ${
+                    ativo
+                      ? 'bg-gradient-to-b from-[#2CD8BE] via-[#17A592] to-[#0E7769] shadow-[inset_0_1px_0_rgba(255,255,255,0.6),inset_0_-1px_1px_rgba(0,0,0,0.22),0_2px_4px_rgba(23,165,146,0.28)] border border-[#148e7e]/40'
+                      : 'bg-[#E8ECF2] shadow-[inset_0_1.5px_2px_rgba(0,0,0,0.08),inset_0_-1px_0_rgba(255,255,255,0.9)] border border-slate-300/40'
+                  }`}
+                >
+                  {ativo && (
+                    <div className="absolute inset-x-1 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/75 to-transparent rounded-full pointer-events-none" />
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
 
@@ -552,7 +602,7 @@ export default function PaginaCadastro() {
           )}
 
           {/* ═══════════════════════════════════════════════════════════════
-              ETAPA 1: Identificação Profissional & Cargo
+              ETAPA 1: Identificação (Nome, E-mail, Senhas)
           ═══════════════════════════════════════════════════════════════ */}
           {etapa === 1 && (
             <form onSubmit={handleAvancarEtapa1} className="space-y-4 animate-[fadeIn_0.2s_ease-out]">
@@ -587,6 +637,65 @@ export default function PaginaCadastro() {
                 />
               </div>
 
+              {/* Senha */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-gray-400 tracking-wider uppercase ml-1">
+                  Senha (mín. 6 caracteres)
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#17A592] focus:ring-1 focus:ring-[#17A592]/10 transition-all"
+                />
+              </div>
+
+              {/* Confirmar Senha */}
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-gray-400 tracking-wider uppercase ml-1">
+                  Confirmar Senha
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={confirmarSenha}
+                  onChange={(e) => setConfirmarSenha(e.target.value)}
+                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#17A592] focus:ring-1 focus:ring-[#17A592]/10 transition-all"
+                />
+              </div>
+
+              {/* Botão Avançar para Etapa 2 */}
+              <div className="pt-2">
+                <LiquidMetalButton
+                  type="submit"
+                  tamanho="lg"
+                  larguraTotal
+                  label="Avançar"
+                />
+              </div>
+
+              {/* Link para Login */}
+              <div className="text-center pt-1">
+                <Link
+                  href="/login"
+                  className="text-xs font-bold text-gray-500 hover:text-gray-800 hover:underline"
+                >
+                  Já tem conta? Faça Login
+                </Link>
+              </div>
+
+            </form>
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════
+              ETAPA 2: Hospital & Tipo de Perfil
+          ═══════════════════════════════════════════════════════════════ */}
+          {etapa === 2 && (
+            <form onSubmit={handleAvancarEtapa2} className="space-y-4 animate-[fadeIn_0.2s_ease-out]">
+              
               {/* Hospital */}
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-gray-400 tracking-wider uppercase ml-1">
@@ -605,24 +714,24 @@ export default function PaginaCadastro() {
                 </select>
               </div>
 
-              {/* Número do Conselho (COREN / CRM / CREA) */}
+              {/* Número do Conselho (Opcional) */}
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-gray-400 tracking-wider uppercase ml-1">
-                  Número do Conselho (COREN / CRM / CREA)
+                  Número do Conselho (Opcional)
                 </label>
                 <input
                   type="text"
-                  placeholder="Ex: COREN-BA 123456"
+                  placeholder="Ex: COREN-BA 123456 / CRM / CREA"
                   value={numeroConselho}
                   onChange={(e) => setNumeroConselho(e.target.value)}
                   className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#17A592] focus:ring-1 focus:ring-[#17A592]/10 transition-all"
                 />
               </div>
 
-              {/* Perfil / Cargo — Seletor por Avatares */}
+              {/* Tipo de Perfil — Seletor por Avatares */}
               <div className="space-y-2 pt-1">
                 <label className="text-[11px] font-bold text-gray-400 tracking-wider uppercase ml-1 block">
-                  Perfil / Cargo
+                  Tipo de perfil
                 </label>
                 <div className="flex justify-around items-center bg-[#F4F6FA] border border-gray-200/80 rounded-2xl p-3">
                   {ROLES.map((r) => {
@@ -696,34 +805,37 @@ export default function PaginaCadastro() {
                 </div>
               </div>
 
-              {/* Botão Avançar para Etapa 2 */}
+              {/* Botão Avançar para Etapa 3 */}
               <div className="pt-2">
-                <button
+                <LiquidMetalButton
                   type="submit"
-                  className="w-full h-12 rounded-2xl bg-[#17A592] text-[#EFF7F2] font-bold text-sm shadow-[0_4px_14px_rgba(23,165,146,0.35)] hover:bg-[#138e7e] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>Continuar</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+                  tamanho="lg"
+                  larguraTotal
+                  label="Avançar"
+                />
               </div>
 
-              {/* Link para Login */}
+              {/* Botão Voltar para a Etapa 1 */}
               <div className="text-center pt-1">
-                <Link
-                  href="/login"
-                  className="text-xs font-bold text-gray-500 hover:text-gray-800 hover:underline"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setErro(null)
+                    setEtapa(1)
+                  }}
+                  className="text-xs font-bold text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
                 >
-                  Já tem conta? Faça Login
-                </Link>
+                  ← Voltar para identificação
+                </button>
               </div>
 
             </form>
           )}
 
           {/* ═══════════════════════════════════════════════════════════════
-              ETAPA 2: Foto de Perfil (Opcional) & Senha de Acesso
+              ETAPA 3: Personalização (Foto & Prévia Ampliada)
           ═══════════════════════════════════════════════════════════════ */}
-          {etapa === 2 && (
+          {etapa === 3 && (
             <form onSubmit={handleCadastrar} className="space-y-4 animate-[fadeIn_0.2s_ease-out]">
               
               {/* SEÇÃO: Foto de Perfil (Opcional) */}
@@ -749,7 +861,7 @@ export default function PaginaCadastro() {
                       </button>
                     </div>
                   ) : (
-                    // Caso NÃO tenha foto -> mostra o avatar oficial do cargo escolhido na Etapa 1
+                    // Caso NÃO tenha foto -> mostra o avatar oficial do cargo escolhido
                     <div 
                       onClick={abrirCamera}
                       className="relative cursor-pointer group"
@@ -769,7 +881,7 @@ export default function PaginaCadastro() {
                   )}
                 </div>
 
-                {/* Textos explicativos atualizados conforme feedback */}
+                {/* Textos explicativos da foto */}
                 <div className="text-center w-full">
                   <div className="flex items-center justify-center gap-1.5 text-[11.5px] font-bold text-gray-800">
                     <span>{fotoPreview ? 'Ficou muito bom!' : 'Foto de Perfil (Opcional)'}</span>
@@ -784,7 +896,7 @@ export default function PaginaCadastro() {
                   <p className="text-[11px] text-gray-500 mt-1 leading-relaxed max-w-[260px] mx-auto">
                     {fotoPreview 
                       ? 'Essa foto será exibida como seu avatar para os outros usuários na plataforma.' 
-                      : `A foto ajuda sua equipe a identificar você. Se preferir não enviar agora, sem problemas: seu avatar será o ícone oficial de ${roleAtual.label}.`}
+                      : `A foto ajuda sua equipe a identificar você. Se preferir não enviar agora, seu avatar será o ícone de ${roleAtual.label}.`}
                   </p>
 
                   {/* Botões Câmera e Galeria */}
@@ -820,64 +932,92 @@ export default function PaginaCadastro() {
                 </div>
               </div>
 
-              {/* ── SIMULAÇÃO DA PILL DO USUÁRIO (AMPLIADA) ── */}
-              <div className="space-y-1.5 pt-0.5">
-                <label className="text-[11px] font-bold text-gray-400 tracking-wider uppercase ml-1 block">
-                  Prévia na aplicação
-                </label>
-                <div className="bg-[#F4F6FA] border border-gray-200/80 rounded-2xl p-4 flex flex-col items-center justify-center gap-2.5">
-                  <span className="text-[10.5px] font-semibold text-gray-400 text-center">
-                    Assim aparecerá sua identificação no cabeçalho do sistema:
+              {/* ── PRÉVIA DA PILL DO USUÁRIO (AMPLIADA & INTUITIVA) ── */}
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center justify-between px-1">
+                  <label className="text-[11px] font-bold text-gray-400 tracking-wider uppercase">
+                    Seu Crachá Digital no Sistema
+                  </label>
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2 py-0.5 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Prévia ao vivo
                   </span>
-                  
-                  {/* A Pill do Usuário (Simulação em tempo real) */}
-                  <div className="inline-flex items-center gap-2.5 pl-1.5 pr-4 py-1.5 rounded-full bg-white border border-slate-200/90 shadow-[0_2px_10px_rgba(0,0,0,0.04)] transition-all hover:scale-[1.02]">
+                </div>
+
+                <div className="bg-[#F4F6FA] border border-gray-200/80 rounded-3xl p-5 flex flex-col items-center gap-4 shadow-[inset_0_1px_3px_rgba(0,0,0,0.02)]">
+                  {/* Cartão de Identificação em Destaque (Estilo Crachá / Header Mockup) */}
+                  <div className="w-full bg-white rounded-2xl p-4 border border-slate-200/90 shadow-[0_4px_16px_rgba(0,0,0,0.05)] flex items-center gap-4 transition-all">
                     <AvatarPerfil
                       perfil={perfilSelecionado}
                       avatarUrl={fotoPreview}
                       nome={nomeCompleto || 'Seu Nome'}
-                      tamanho="md"
+                      tamanho="xl"
+                      className="ring-3 ring-[#17A592]/20 shadow-md"
                     />
-                    <div className="flex flex-col items-start leading-tight text-left pr-1 min-w-0 max-w-[210px]">
-                      <span className="w-full block text-[13px] font-extrabold text-slate-900 tracking-tight truncate">
-                        {nomeCompleto || 'Seu Nome'}
-                      </span>
-                      <span className="w-full block text-[10.5px] font-semibold text-slate-500 truncate mt-0.5">
-                        {roleAtual.label} • {hospitalNome}
+                    <div className="flex flex-col items-start leading-snug min-w-0 flex-1">
+                      <div className="flex items-center gap-2 w-full">
+                        <span className="text-[15px] font-extrabold text-slate-900 tracking-tight truncate">
+                          {nomeCompleto || 'Seu Nome Completo'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span
+                          className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                            perfilSelecionado === 'coordenador'
+                              ? 'text-purple-700 bg-purple-100 border border-purple-200/70'
+                              : perfilSelecionado === 'tecnico'
+                              ? 'text-amber-800 bg-amber-100 border border-amber-200/70'
+                              : 'text-[#17A592] bg-[#17A592]/10 border border-[#17A592]/30'
+                          }`}
+                        >
+                          {roleAtual.label}
+                        </span>
+                        {numeroConselho && (
+                          <span className="text-[11px] font-bold text-gray-500 truncate">
+                            • {numeroConselho}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-semibold text-slate-500 truncate mt-1">
+                        {hospitalNome}
                       </span>
                     </div>
                   </div>
+
+                  {/* Simulação no Cabeçalho Superior da Tela */}
+                  <div className="w-full bg-slate-50/80 rounded-2xl p-3 border border-slate-200/60 flex flex-col items-center gap-2">
+                    <div className="flex items-center justify-between w-full px-1">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        Como aparecerá no menu superior:
+                      </span>
+                      <span className="text-[10px] font-extrabold text-slate-600 font-brand">
+                        Primus
+                      </span>
+                    </div>
+                    
+                    {/* A Pill em tamanho real no cabeçalho */}
+                    <div className="inline-flex items-center gap-2 pl-1.5 pr-3.5 py-1 rounded-full bg-white border border-slate-200/90 shadow-xs">
+                      <AvatarPerfil
+                        perfil={perfilSelecionado}
+                        avatarUrl={fotoPreview}
+                        nome={nomeCompleto || 'Seu Nome'}
+                        tamanho="sm"
+                      />
+                      <div className="flex flex-col items-start leading-tight text-left pr-0.5 min-w-0 max-w-[180px]">
+                        <span className="w-full block text-[11.5px] font-extrabold text-slate-900 tracking-tight truncate">
+                          {nomeCompleto || 'Seu Nome'}
+                        </span>
+                        <span className="w-full block text-[9.5px] font-semibold text-slate-500 truncate">
+                          {roleAtual.label} • {hospitalNome}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-gray-500 font-medium text-center leading-relaxed max-w-[300px]">
+                    Este crachá acompanhará você em todas as telas, registrando suas checagens e assinando relatórios em tempo real.
+                  </p>
                 </div>
-              </div>
-
-              {/* Senha */}
-              <div className="space-y-1.5 pt-1">
-                <label className="text-[11px] font-bold text-gray-400 tracking-wider uppercase ml-1">
-                  Senha (mín. 6 caracteres)
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#17A592] focus:ring-1 focus:ring-[#17A592]/10 transition-all"
-                />
-              </div>
-
-              {/* Confirmar Senha */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-gray-400 tracking-wider uppercase ml-1">
-                  Confirmar Senha
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={confirmarSenha}
-                  onChange={(e) => setConfirmarSenha(e.target.value)}
-                  className="w-full bg-[#F4F6FA] border border-gray-200/80 rounded-2xl px-4 py-3 text-[15px] text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#17A592] focus:ring-1 focus:ring-[#17A592]/10 transition-all"
-                />
               </div>
 
               {/* Botão Cadastrar (Liquid Metal) */}
@@ -891,17 +1031,17 @@ export default function PaginaCadastro() {
                 />
               </div>
 
-              {/* Botão Voltar para a Etapa 1 */}
+              {/* Botão Voltar para a Etapa 2 */}
               <div className="text-center pt-1">
                 <button
                   type="button"
                   onClick={() => {
                     setErro(null)
-                    setEtapa(1)
+                    setEtapa(2)
                   }}
                   className="text-xs font-bold text-gray-400 hover:text-gray-700 transition-colors cursor-pointer"
                 >
-                  ← Voltar para dados profissionais
+                  ← Voltar para hospital e perfil
                 </button>
               </div>
 
