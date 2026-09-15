@@ -363,6 +363,7 @@ export function PainelDashboard({ hospitalId, periodo: periodoProp, onPeriodoCha
           ncsParaRankingRes,
           ncsTodasPeriodoRes,
           ativosRes,
+          historicoEncerramentoRes,
         ] = await Promise.all([
           supabase
             .from('execucoes_checklist')
@@ -378,13 +379,13 @@ export function PainelDashboard({ hospitalId, periodo: periodoProp, onPeriodoCha
             .gte('criado_em', dataInicioISO),
           supabase
             .from('nao_conformidades')
-            .select('id, criado_em, atualizado_em, status')
+            .select('id, criado_em, status')
             .eq('hospital_id', hospitalId)
             .eq('status', 'encerrada')
             .gte('criado_em', dataInicioISO),
           supabase
             .from('nao_conformidades')
-            .select('id, criado_em, atualizado_em, status')
+            .select('id, criado_em, status')
             .eq('hospital_id', hospitalId)
             .eq('status', 'encerrada')
             .gte('criado_em', dataInicioAnteriorISO)
@@ -408,6 +409,11 @@ export function PainelDashboard({ hospitalId, periodo: periodoProp, onPeriodoCha
             .from('ativos')
             .select('id, status, locais(nome)')
             .eq('hospital_id', hospitalId),
+          // Buscar datas reais de encerramento do histórico de status
+          supabase
+            .from('historico_status_nao_conformidade')
+            .select('nao_conformidade_id, criado_em')
+            .eq('status_para', 'encerrada'),
         ])
 
         const mapaUsuarios = new Map<string, { nome: string; perfil: string; avatarUrl?: string; setor?: string }>()
@@ -555,12 +561,26 @@ export function PainelDashboard({ hospitalId, periodo: periodoProp, onPeriodoCha
           .sort((a, b) => b.quantidadeNcs - a.quantidadeNcs)
           .slice(0, 5)
 
+        // Mapa de datas reais de encerramento (historico_status_nao_conformidade)
+        const mapaEncerramentos = new Map<string, string>()
+        if (historicoEncerramentoRes.data) {
+          historicoEncerramentoRes.data.forEach((h: any) => {
+            // Pega o registro mais recente de encerramento para cada NC
+            const existente = mapaEncerramentos.get(h.nao_conformidade_id)
+            if (!existente || new Date(h.criado_em) > new Date(existente)) {
+              mapaEncerramentos.set(h.nao_conformidade_id, h.criado_em)
+            }
+          })
+        }
+
         // Tempo médio de resolução real (a partir das NCs encerradas)
         let tempoMedioResolucaoMs: number | null = null
         if (ncsEncerradasPeriodo && ncsEncerradasPeriodo.length > 0) {
           const tempos = ncsEncerradasPeriodo
             .map((nc: any) => {
-              const dtFim = new Date(nc.atualizado_em || nc.updated_at || nc.criado_em).getTime()
+              const dataEncerramento = mapaEncerramentos.get(nc.id)
+              if (!dataEncerramento) return 0
+              const dtFim = new Date(dataEncerramento).getTime()
               const dtIni = new Date(nc.criado_em).getTime()
               return Math.max(dtFim - dtIni, 0)
             })
@@ -575,7 +595,9 @@ export function PainelDashboard({ hospitalId, periodo: periodoProp, onPeriodoCha
         if (ncsEncerradasAnterior && ncsEncerradasAnterior.length > 0) {
           const temposAnt = ncsEncerradasAnterior
             .map((nc: any) => {
-              const dtFim = new Date(nc.atualizado_em || nc.updated_at || nc.criado_em).getTime()
+              const dataEncerramento = mapaEncerramentos.get(nc.id)
+              if (!dataEncerramento) return 0
+              const dtFim = new Date(dataEncerramento).getTime()
               const dtIni = new Date(nc.criado_em).getTime()
               return Math.max(dtFim - dtIni, 0)
             })

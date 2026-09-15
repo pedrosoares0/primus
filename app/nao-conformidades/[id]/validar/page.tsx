@@ -112,14 +112,14 @@ export default function ValidarNC() {
         .from('historico_status_nao_conformidade')
         .select('*')
         .eq('nao_conformidade_id', ncId)
-        .order('created_at', { ascending: true })
+        .order('criado_em', { ascending: true })
 
       // 5. Buscar registro de manutenção
       const { data: maintData } = await supabase
         .from('registros_manutencao')
         .select('*')
         .eq('nao_conformidade_id', ncId)
-        .order('created_at', { ascending: false })
+        .order('criado_em', { ascending: false })
 
       const localAtivo = ncData.ativos?.locais || {}
       const centroCirurgico = localAtivo.centros_cirurgicos || {}
@@ -161,7 +161,12 @@ export default function ValidarNC() {
         tipo: ncData.tipo || 'equipamento',
         setor_responsavel: ncData.setor_responsavel || null,
         registro_manutencao: maintData && maintData.length > 0 ? maintData[0] : null,
-        historico: historicoData || [],
+        historico: (historicoData || []).map((h: any) => ({
+          ...h,
+          status_anterior: h.status_de || h.status_anterior,
+          status_novo: h.status_para || h.status_novo,
+          created_at: h.criado_em || h.created_at,
+        })),
       })
 
     } catch (err: any) {
@@ -208,8 +213,8 @@ export default function ValidarNC() {
         .from('historico_status_nao_conformidade')
         .insert({
           nao_conformidade_id: nc.id,
-          status_anterior: nc.status,
-          status_novo: 'encerrada',
+          status_de: nc.status,
+          status_para: 'encerrada',
           usuario_id: usuario.id,
         })
 
@@ -249,8 +254,8 @@ export default function ValidarNC() {
         .from('historico_status_nao_conformidade')
         .insert({
           nao_conformidade_id: nc.id,
-          status_anterior: nc.status,
-          status_novo: 'correcao_recusada',
+          status_de: nc.status,
+          status_para: 'correcao_recusada',
           usuario_id: usuario.id,
         })
 

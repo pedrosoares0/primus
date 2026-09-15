@@ -51,7 +51,7 @@ export async function buscarResumoHospital(
 
   let qNcsEncerradas = supabase
     .from('nao_conformidades')
-    .select('id, criticidade, tipo, criado_em, atualizado_em, responsavel_id, ativos(nome)')
+    .select('id, criticidade, tipo, criado_em, responsavel_id, ativos(nome)')
     .eq('status', 'encerrada')
     .gte('criado_em', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
     .order('criado_em', { ascending: false })
@@ -65,6 +65,7 @@ export async function buscarResumoHospital(
     execucoesRes,
     usuariosRes,
     ncsEncerradasRes,
+    historicoEncerramentoRes,
   ] = await Promise.all([
     supabase
       .from('locais')
@@ -75,6 +76,10 @@ export async function buscarResumoHospital(
     qExecucoes,
     qUsuarios,
     qNcsEncerradas,
+    supabase
+      .from('historico_status_nao_conformidade')
+      .select('nao_conformidade_id, criado_em')
+      .eq('status_para', 'encerrada'),
   ])
 
   const locais = locaisRes.data || []
@@ -252,12 +257,25 @@ export async function buscarResumoHospital(
   }
 
   // -- Tempo médio de resolução --
+  // Mapa de datas reais de encerramento do histórico
+  const mapaEncerramentos = new Map<string, string>()
+  if (historicoEncerramentoRes.data) {
+    historicoEncerramentoRes.data.forEach((h: any) => {
+      const existente = mapaEncerramentos.get(h.nao_conformidade_id)
+      if (!existente || new Date(h.criado_em) > new Date(existente)) {
+        mapaEncerramentos.set(h.nao_conformidade_id, h.criado_em)
+      }
+    })
+  }
+
   let blocoTempoResolucao = '## Tempo Médio de Resolução (Últimos 30 dias)\n'
   if (ncsEncerradas.length > 0) {
     const tempos = ncsEncerradas
       .map((nc: any) => {
+        const dataEncerramento = mapaEncerramentos.get(nc.id)
+        if (!dataEncerramento) return 0
         const ini = new Date(nc.criado_em).getTime()
-        const fim = new Date(nc.atualizado_em || nc.criado_em).getTime()
+        const fim = new Date(dataEncerramento).getTime()
         return Math.max(fim - ini, 0)
       })
       .filter((t: number) => t > 0)

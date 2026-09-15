@@ -233,6 +233,25 @@ export interface NaoConformidade {
   updated_at: string
 }
 
+export interface HistoricoStatusNaoConformidade {
+  id: string
+  nao_conformidade_id: string
+  status_de: StatusNaoConformidade | string
+  status_para: StatusNaoConformidade | string
+  usuario_id: string | null
+  criado_em: string
+}
+
+export interface RegistroManutencao {
+  id: string
+  nao_conformidade_id: string
+  usuario_id: string
+  descricao: string
+  status: string
+  finalizada_em: string | null
+  criado_em: string
+}
+
 // ---- Tipo Database (placeholder para Supabase Client) ----
 
 export interface Database {
@@ -252,6 +271,8 @@ export interface Database {
       execucoes_checklist: { Row: ExecucaoChecklist; Insert: Partial<ExecucaoChecklist>; Update: Partial<ExecucaoChecklist> }
       itens_execucao_checklist: { Row: ItemExecucaoChecklist; Insert: Partial<ItemExecucaoChecklist>; Update: Partial<ItemExecucaoChecklist> }
       nao_conformidades: { Row: NaoConformidade; Insert: Partial<NaoConformidade>; Update: Partial<NaoConformidade> }
+      historico_status_nao_conformidade: { Row: HistoricoStatusNaoConformidade; Insert: Partial<HistoricoStatusNaoConformidade>; Update: Partial<HistoricoStatusNaoConformidade> }
+      registros_manutencao: { Row: RegistroManutencao; Insert: Partial<RegistroManutencao>; Update: Partial<RegistroManutencao> }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
