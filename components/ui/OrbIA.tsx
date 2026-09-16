@@ -1,12 +1,15 @@
 'use client'
 
 import React, { useEffect, useRef } from 'react'
-
 import { cn } from '@/lib/utils'
 
 export type FluidOrbProps = React.ComponentProps<'div'> & {
   size?: number
   color?: string
+  secondaryColor?: string
+  deepColor?: string
+  topColor?: string
+  estado?: 'idle' | 'thinking'
 }
 
 const VERT = `
@@ -26,7 +29,10 @@ precision mediump float;
 uniform vec2 u_resolution;
 uniform float u_time;
 uniform vec3 u_color;
+uniform vec3 u_secondaryColor;
+uniform vec3 u_deepColor;
 uniform vec3 u_topColor;
+uniform float u_thinking;
 
 float hash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
@@ -56,7 +62,7 @@ float fbm(vec2 p) {
 
 void main() {
   vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-  float t = u_time * 0.22;
+  float t = u_time * (u_thinking > 0.5 ? 0.38 : 0.22);
 
   vec2 drift = vec2(
     sin(t) + 0.6 * sin(t * 1.7 + 1.3),
@@ -70,23 +76,40 @@ void main() {
 
   float g = clamp(1.0 - uv.y, 0.0, 1.0);
   float anchor = smoothstep(0.0, 0.3, uv.y);
-  float shade = clamp(g + (f - 0.5) * 0.8 * anchor, 0.0, 1.0);
+  float shade = clamp(g + (f - 0.5) * 0.85 * anchor, 0.0, 1.0);
 
-  vec3 top = u_topColor;
-  // Meio-tom suave fosco (névoa mineral/sage sem saturação neon)
-  vec3 mid = mix(top, u_color, 0.55);
-  mid.g *= 0.96;
+  // Degradê dinâmico fluido correspondente à identidade visual da logo Primus (Verde Esmeralda -> Menta -> Ciano/Aqua)
+  float gradFactor = clamp(uv.x * 0.72 + uv.y * 0.28 + (f - 0.5) * 0.42 + (q.x - q.y) * 0.22, 0.0, 1.0);
   
-  vec3 dark = u_color;
-  // Base profunda aveludada (evita sensação de marca-texto)
-  vec3 deep = u_color * 0.70;
+  // Transição rica de 3 paradas luminosas como na logo
+  vec3 mintColor = mix(u_color, u_secondaryColor, 0.48);
+  vec3 fluidGradient = mix(
+    mix(u_color, mintColor, smoothstep(0.0, 0.5, gradFactor)),
+    mix(mintColor, u_secondaryColor, smoothstep(0.5, 1.0, gradFactor)),
+    step(0.5, gradFactor)
+  );
 
-  vec3 col = top;
-  col = mix(col, mid, smoothstep(0.26, 0.52, shade));
-  col = mix(col, dark, smoothstep(0.52, 0.80, shade));
-  col = mix(col, deep, smoothstep(0.80, 1.0, shade));
+  // Crista suave iluminada na borda da onda
+  vec3 crestColor = mix(u_topColor, u_secondaryColor, 0.35);
+  
+  // Meio do fluido com corpo radiante e translúcido
+  vec3 midColor = mix(crestColor, fluidGradient, 0.75);
+  
+  // Base viva em tom esmeralda puro (sem escurecer ou ficar opaco)
+  vec3 deepColor = mix(u_deepColor, fluidGradient, clamp(uv.y * 0.75 + 0.25, 0.0, 1.0));
 
-  float edge = smoothstep(0.5, 0.49, distance(uv, vec2(0.5)));
+  // Blend com gradientes suaves
+  vec3 col = u_topColor;
+  col = mix(col, crestColor, smoothstep(0.16, 0.36, shade));
+  col = mix(col, midColor, smoothstep(0.36, 0.65, shade));
+  col = mix(col, fluidGradient, smoothstep(0.65, 0.85, shade));
+  col = mix(col, deepColor, smoothstep(0.85, 1.0, shade));
+
+  // Borda circular limpa e antialiased com sutil brilho de contorno (rim light ciano)
+  float dist = distance(uv, vec2(0.5));
+  float edge = smoothstep(0.5, 0.49, dist);
+  float rim = smoothstep(0.25, 0.5, dist) * 0.12;
+  col += u_secondaryColor * rim * edge;
 
   gl_FragColor = vec4(col * edge, edge);
 }
@@ -98,7 +121,7 @@ function hexToRgb(hex: string): [number, number, number] {
     h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]
   }
   const n = parseInt(h, 16)
-  if (h.length !== 6 || Number.isNaN(n)) return [0.18, 0.82, 0.62]
+  if (h.length !== 6 || Number.isNaN(n)) return [0.0, 0.78, 0.53]
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]
 }
 
@@ -117,12 +140,15 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
 
 const FluidOrb = ({
   size = 240,
-  color = '#0F766E',
+  color = '#00C988',
+  secondaryColor = '#5CE1E6',
+  deepColor = '#047857',
   topColor = '#FFFFFF',
+  estado = 'idle',
   className,
   style,
   ...props
-}: FluidOrbProps & { topColor?: string }) => {
+}: FluidOrbProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -160,10 +186,16 @@ const FluidOrb = ({
     const uResolution = gl.getUniformLocation(program, 'u_resolution')
     const uTime = gl.getUniformLocation(program, 'u_time')
     const uColor = gl.getUniformLocation(program, 'u_color')
+    const uSecondaryColor = gl.getUniformLocation(program, 'u_secondaryColor')
+    const uDeepColor = gl.getUniformLocation(program, 'u_deepColor')
     const uTopColor = gl.getUniformLocation(program, 'u_topColor')
+    const uThinking = gl.getUniformLocation(program, 'u_thinking')
 
     if (uColor) gl.uniform3f(uColor, ...hexToRgb(color))
+    if (uSecondaryColor) gl.uniform3f(uSecondaryColor, ...hexToRgb(secondaryColor))
+    if (uDeepColor) gl.uniform3f(uDeepColor, ...hexToRgb(deepColor))
     if (uTopColor) gl.uniform3f(uTopColor, ...hexToRgb(topColor))
+    if (uThinking) gl.uniform1f(uThinking, estado === 'thinking' ? 1.0 : 0.0)
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2)
     const px = Math.round(size * dpr)
@@ -190,7 +222,7 @@ const FluidOrb = ({
       gl.deleteShader(frag)
       gl.deleteBuffer(buffer)
     }
-  }, [size, color, topColor])
+  }, [size, color, secondaryColor, deepColor, topColor, estado])
 
   return (
     <div
@@ -211,11 +243,13 @@ const FluidOrb = ({
 export { FluidOrb }
 
 /* ── Backward-compatible alias for existing imports ── */
-interface OrbIAProps {
+export interface OrbIAProps {
   tamanho?: number
   estado?: 'idle' | 'thinking'
   className?: string
   color?: string
+  secondaryColor?: string
+  deepColor?: string
   topColor?: string
 }
 
@@ -223,13 +257,18 @@ export function OrbIA({
   tamanho = 36,
   estado = 'idle',
   className = '',
-  color = '#0F766E',
+  color = '#00C988',
+  secondaryColor = '#5CE1E6',
+  deepColor = '#047857',
   topColor = '#FFFFFF',
 }: OrbIAProps) {
   return (
     <FluidOrb
       size={tamanho}
+      estado={estado}
       color={color}
+      secondaryColor={secondaryColor}
+      deepColor={deepColor}
       topColor={topColor}
       className={className}
     />

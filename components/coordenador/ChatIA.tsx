@@ -32,7 +32,7 @@ function ThinkingState() {
     <div className="flex items-center gap-2.5 py-1 px-1 text-slate-500">
       <div className="relative flex items-center justify-center">
         <OrbIA tamanho={18} estado="thinking" />
-        <span className="absolute inset-0 rounded-full bg-[#0F766E]/20 animate-ping" />
+        <span className="absolute inset-0 rounded-full bg-[#00C988]/30 animate-ping" />
       </div>
       <span className="text-[13px] font-normal text-slate-500 tracking-tight animate-pulse">
         Analisando dados do hospital...
@@ -347,7 +347,7 @@ export function ChatIA() {
                     <div
                       className="relative flex items-center justify-center p-1 rounded-full"
                       style={{
-                        filter: 'drop-shadow(0 8px 24px rgba(15, 118, 110, 0.18))',
+                        filter: 'drop-shadow(0 10px 28px rgba(0, 201, 136, 0.22)) drop-shadow(0 4px 14px rgba(92, 225, 230, 0.18))',
                       }}
                     >
                       <OrbIA tamanho={110} estado={enviando ? 'thinking' : 'idle'} />
