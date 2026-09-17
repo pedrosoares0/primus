@@ -124,7 +124,7 @@ primus/
 │   │   ├── IconeMascote.tsx    # Ícone mascote "blop" do Primus
 │   │   ├── ItemLista.tsx       # Item de lista com seta
 │   │   ├── LenisProvider.tsx   # Provider de smooth scroll
-│   │   ├── OrbIA.tsx           # Fluid Orb WebGL com gradiente #FFFFFF → #0F766E e FBM domain warping
+│   │   ├── OrbIA.tsx           # Liquid Glass Orb WebGPU com WGSL, refração óptica e transição idle/thinking
 │   │   ├── ai-chat-input.tsx   # Input de chat em formato de cápsula redonda e botão circular
 │   │   ├── response-stream.tsx # Streaming typewriter para respostas da IA
 │   │   ├── PillTag.tsx         # Badge/pill colorido (verde, laranja, vermelho, azul, cinza)
@@ -727,10 +727,10 @@ O **Primus IA** é o copiloto inteligente em tempo real exclusivo para o perfil 
 - Respostas transmitidas caractere a caractere diretamente para o componente `ResponseStream`.
 - Parser de Markdown com formatação estruturada de listas identadas (`•`), badges coloridos para NCs (`NC-2026-E009`) e pills de criticidade (*Crítica*, *Importante*, *Informativa*).
 
-### 13.4 Interface & Fluid Orb WebGL
+### 13.4 Interface & Liquid Glass Orb WebGPU
 
 - **Botão de Ativação**: Posicionado organicamente fora da barra de abas, ao lado direito de "Ativos" no Desktop e Mobile.
-- **Shader WebGL Fluid Orb**: Shader procedural orgânico de altíssimo desempenho com ruído FBM, distorção de domínio (*domain warping*) e gradiente marmorizado fluido (`#FFFFFF` no topo cristalino → `#0F766E` na base esmeralda botânica profunda), com máscara circular antialiased (smoothstep).
+- **Shader WebGPU Liquid Glass Orb**: Shader WGSL procedural com refração óptica física, perfil de dispersão espectral assimétrica, interpolação sRGB linearizada e transições orgânicas de estado (`idle` e `thinking`).
 - **Chat Drawer**: Painel deslizante com fundo em Glassmorphism translúcido (`backdrop-blur-[24px]`).
 
 ---
@@ -740,7 +740,7 @@ O **Primus IA** é o copiloto inteligente em tempo real exclusivo para o perfil 
 ### ✅ Implementado e Funcional
 
 - Login e cadastro com Supabase Auth real e tradução humanizada de erros
-- **Módulo Primus IA** completo com streaming SSE, contexto em tempo real e Fluid Orb WebGL orgânico
+- **Módulo Primus IA** completo com streaming SSE, contexto em tempo real e Liquid Glass Orb WebGPU orgânico
 - Dashboard do Inspetor com lista de salas (dados reais do Supabase)
 - Scanner QR via câmera do dispositivo (BarcodeDetector API)
 - Execução completa de checklist com persistência no Supabase

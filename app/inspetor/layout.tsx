@@ -231,7 +231,7 @@ export default function LayoutInspetor({
       </main>
 
       {/* NAV INFERIOR */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 max-w-md mx-auto px-4 pb-[max(0.65rem,env(safe-area-inset-bottom))] pointer-events-none">
+      <div className="fixed bottom-0 left-0 right-0 z-40 max-w-[290px] mx-auto px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] pointer-events-none">
         <nav className="pointer-events-auto bg-white/40 backdrop-blur-[24px] saturate-[180%] rounded-full border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.08),inset_0_1px_1px_rgba(255,255,255,0.7)] p-1.5">
           <div className="flex items-center justify-between gap-1">
             {itensNav.map((item) => {
@@ -245,7 +245,7 @@ export default function LayoutInspetor({
                   href={item.href}
                   prefetch={true}
                   className={[
-                    'flex-1 flex flex-col items-center justify-center py-1.5 px-3 rounded-full cursor-pointer',
+                    'flex-1 flex flex-col items-center justify-center py-1.5 px-2 rounded-full cursor-pointer',
                     'transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] active:scale-[0.92]',
                     ativo
                       ? 'bg-gradient-to-b from-[#17A592]/20 to-[#17A592]/10 text-[#17A592] shadow-[0_3px_10px_rgba(23,165,146,0.18),inset_0_1px_1.5px_rgba(255,255,255,0.8),inset_0_0_0_1px_rgba(23,165,146,0.22)] font-black'

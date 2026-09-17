@@ -49,7 +49,7 @@ export function CardsMetricasAtivos({
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 font-nunito">
       {/* CARD 1: OPERACIONAIS (Verde Conforme #54D362 → #31B44A) */}
       <div
         onClick={() => handleClick('operacional')}
@@ -59,50 +59,44 @@ export function CardsMetricasAtivos({
           boxShadow:
             'inset 0 4px 14px rgba(255, 255, 255, 0.95), inset 0 -4px 10px rgba(0, 0, 0, 0.1), inset 4px 0 12px rgba(255, 255, 255, 0.75), inset -4px 0 12px rgba(255, 255, 255, 0.75), 0 12px 32px rgba(49, 180, 74, 0.3)',
         }}
-        className={`relative overflow-hidden rounded-[28px] px-6 py-5.5 transition-all duration-300 select-none flex flex-col justify-between min-h-[132px] border-0 ${
+        className={`relative overflow-hidden rounded-[34px] px-6 py-5.5 transition-all duration-300 select-none flex flex-col justify-between min-h-[132px] border-0 font-nunito ${
           clicavel ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98]' : ''
         } ${filtroStatus === 'operacional' ? 'ring-4 ring-emerald-300 ring-offset-2' : ''}`}
       >
         {/* Camada de brilho e inner shadow superior intenso */}
-        <div className="absolute top-0 inset-x-0 h-3/5 bg-gradient-to-b from-white/40 via-white/10 to-transparent rounded-t-[28px] pointer-events-none" />
+        <div className="absolute top-0 inset-x-0 h-3/5 bg-gradient-to-b from-white/40 via-white/10 to-transparent rounded-t-[34px] pointer-events-none" />
 
-        <div className="relative z-10 flex items-start justify-between">
-          <span className="text-[10.5px] font-black uppercase tracking-wider text-white/95 drop-shadow-xs">
-            Operacionais
-          </span>
-          {/* Selo Florado do Badge Conforme */}
-          <div className="w-7 h-7 flex items-center justify-center">
-            <svg className="w-6 h-6 drop-shadow-xs" viewBox="0 0 24 24" fill="none">
+        <div className="relative z-10 flex items-center gap-1.5">
+          {/* Badge Conforme estilo translúcido com recorte */}
+          <div className="w-5 h-5 flex items-center justify-center shrink-0">
+            <svg className="w-4.5 h-4.5 drop-shadow-xs" viewBox="0 0 24 24" fill="rgba(255,255,255,0.4)">
               <path
-                fill="rgba(255,255,255,0.4)"
-                d="M12 2a2 2 0 0 1 1.414.586l.828.828a2 2 0 0 0 1.414.586h1.172a2 2 0 0 1 2 2v1.172a2 2 0 0 0 .586 1.414l.828.828A2 2 0 0 1 21 10.828v1.172a2 2 0 0 1-.586 1.414l-.828.828a2 2 0 0 0-.586 1.414v1.172a2 2 0 0 1-2 2h-1.172a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 10.828 21h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 6 19h-1.172a2 2 0 0 1-2-2v-1.172a2 2 0 0 0-.586-1.414l-.828-.828A2 2 0 0 1 3 12v-1.172a2 2 0 0 1 .586-1.414l.828-.828A2 2 0 0 0 5 7.172V6a2 2 0 0 1 2-2h1.172a2 2 0 0 0 1.414-.586l.828-.828A2 2 0 0 1 12 2z"
-              />
-              <path
-                stroke="white"
-                strokeWidth="2.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M8.5 12.5l2.5 2.5 4.5-5"
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"
               />
             </svg>
           </div>
+          <span className="font-nunito text-[10.5px] font-black uppercase tracking-wider text-white/95 drop-shadow-xs">
+            Operacionais
+          </span>
         </div>
 
         <div className="relative z-10 my-1">
           <div className="flex items-baseline gap-1">
             <span
               style={{ fontFamily: "'Nunito', sans-serif" }}
-              className="text-[32px] sm:text-[36px] font-black tracking-tight leading-none text-white drop-shadow-sm"
+              className="font-nunito text-[32px] sm:text-[36px] font-black tracking-tight leading-none text-white drop-shadow-sm"
             >
               {contadores.operacional}
             </span>
-            <span className="text-[11.5px] font-black text-white/70">/ {contadores.total}</span>
+            <span className="font-nunito text-[11.5px] font-black text-white/70">/ {contadores.total}</span>
           </div>
         </div>
 
-        <div className="relative z-10 text-[11px] text-white/95">
-          <span className="font-extrabold drop-shadow-2xs">
-            {contadores.taxaConformidade}% · Prontos para uso
+        <div className="font-nunito relative z-10 text-[11px] text-white/95">
+          <span className="font-black drop-shadow-2xs">
+            {contadores.taxaConformidade}% · Prontos
           </span>
         </div>
       </div>
@@ -116,19 +110,16 @@ export function CardsMetricasAtivos({
           boxShadow:
             'inset 0 4px 14px rgba(255, 255, 255, 0.95), inset 0 -4px 10px rgba(0, 0, 0, 0.1), inset 4px 0 12px rgba(255, 255, 255, 0.75), inset -4px 0 12px rgba(255, 255, 255, 0.75), 0 12px 32px rgba(247, 135, 37, 0.3)',
         }}
-        className={`relative overflow-hidden rounded-[28px] px-6 py-5.5 transition-all duration-300 select-none flex flex-col justify-between min-h-[132px] border-0 ${
+        className={`relative overflow-hidden rounded-[34px] px-6 py-5.5 transition-all duration-300 select-none flex flex-col justify-between min-h-[132px] border-0 font-nunito ${
           clicavel ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98]' : ''
         } ${filtroStatus === 'operacional_com_restricoes' ? 'ring-4 ring-orange-300 ring-offset-2' : ''}`}
       >
-        <div className="absolute top-0 inset-x-0 h-3/5 bg-gradient-to-b from-white/40 via-white/10 to-transparent rounded-t-[28px] pointer-events-none" />
+        <div className="absolute top-0 inset-x-0 h-3/5 bg-gradient-to-b from-white/40 via-white/10 to-transparent rounded-t-[34px] pointer-events-none" />
 
-        <div className="relative z-10 flex items-start justify-between">
-          <span className="text-[10.5px] font-black uppercase tracking-wider text-white/95 drop-shadow-xs">
-            Restrições
-          </span>
+        <div className="relative z-10 flex items-center gap-1.5">
           {/* Triângulo de Alerta do Badge Importante */}
-          <div className="w-7 h-7 flex items-center justify-center">
-            <svg className="w-5.5 h-5.5 drop-shadow-xs" viewBox="0 0 24 24" fill="rgba(255,255,255,0.4)">
+          <div className="w-5 h-5 flex items-center justify-center shrink-0">
+            <svg className="w-4.5 h-4.5 drop-shadow-xs" viewBox="0 0 24 24" fill="rgba(255,255,255,0.4)">
               <path
                 fillRule="evenodd"
                 clipRule="evenodd"
@@ -136,19 +127,22 @@ export function CardsMetricasAtivos({
               />
             </svg>
           </div>
+          <span className="font-nunito text-[10.5px] font-black uppercase tracking-wider text-white/95 drop-shadow-xs">
+            Restrições
+          </span>
         </div>
 
         <div className="relative z-10 my-1">
           <span
             style={{ fontFamily: "'Nunito', sans-serif" }}
-            className="text-[32px] sm:text-[36px] font-black tracking-tight leading-none text-white drop-shadow-sm"
+            className="font-nunito text-[32px] sm:text-[36px] font-black tracking-tight leading-none text-white drop-shadow-sm"
           >
             {contadores.operacional_com_restricoes}
           </span>
         </div>
 
-        <div className="relative z-10 text-[11px] text-white/95">
-          <span className="font-extrabold drop-shadow-2xs">Requer atenção</span>
+        <div className="font-nunito relative z-10 text-[11px] text-white/95">
+          <span className="font-black drop-shadow-2xs">Requer atenção</span>
         </div>
       </div>
 
@@ -161,36 +155,39 @@ export function CardsMetricasAtivos({
           boxShadow:
             'inset 0 4px 14px rgba(255, 255, 255, 0.95), inset 0 -4px 10px rgba(0, 0, 0, 0.1), inset 4px 0 12px rgba(255, 255, 255, 0.75), inset -4px 0 12px rgba(255, 255, 255, 0.75), 0 12px 32px rgba(234, 58, 58, 0.3)',
         }}
-        className={`relative overflow-hidden rounded-[28px] px-6 py-5.5 transition-all duration-300 select-none flex flex-col justify-between min-h-[132px] border-0 ${
+        className={`relative overflow-hidden rounded-[34px] px-6 py-5.5 transition-all duration-300 select-none flex flex-col justify-between min-h-[132px] border-0 font-nunito ${
           clicavel ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98]' : ''
         } ${filtroStatus === 'indisponivel' ? 'ring-4 ring-rose-300 ring-offset-2' : ''}`}
       >
-        <div className="absolute top-0 inset-x-0 h-3/5 bg-gradient-to-b from-white/40 via-white/10 to-transparent rounded-t-[28px] pointer-events-none" />
+        <div className="absolute top-0 inset-x-0 h-3/5 bg-gradient-to-b from-white/40 via-white/10 to-transparent rounded-t-[34px] pointer-events-none" />
 
-        <div className="relative z-10 flex items-start justify-between">
-          <span className="text-[10.5px] font-black uppercase tracking-wider text-white/95 drop-shadow-xs">
-            Indisponíveis
-          </span>
-          {/* Círculo X do Badge Crítico */}
-          <div className="w-7 h-7 flex items-center justify-center">
-            <svg className="w-5.5 h-5.5 drop-shadow-xs" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" fill="rgba(255,255,255,0.35)" />
-              <path stroke="white" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" d="M9 9l6 6m0-6l-6 6" />
+        <div className="relative z-10 flex items-center gap-1.5">
+          {/* Círculo X Crítico estilo translúcido com recorte */}
+          <div className="w-5 h-5 flex items-center justify-center shrink-0">
+            <svg className="w-4.5 h-4.5 drop-shadow-xs" viewBox="0 0 24 24" fill="rgba(255,255,255,0.4)">
+              <path
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-2.47 6.47a.75.75 0 011.06 0L12 10.19l2.47-2.47a.75.75 0 111.06 1.06L13.06 11.25l2.47 2.47a.75.75 0 11-1.06 1.06L12 12.31l-2.47 2.47a.75.75 0 11-1.06-1.06l2.47-2.47-2.47-2.47a.75.75 0 010-1.06z"
+              />
             </svg>
           </div>
+          <span className="font-nunito text-[10.5px] font-black uppercase tracking-wider text-white/95 drop-shadow-xs">
+            Indisponíveis
+          </span>
         </div>
 
         <div className="relative z-10 my-1">
           <span
             style={{ fontFamily: "'Nunito', sans-serif" }}
-            className="text-[32px] sm:text-[36px] font-black tracking-tight leading-none text-white drop-shadow-sm"
+            className="font-nunito text-[32px] sm:text-[36px] font-black tracking-tight leading-none text-white drop-shadow-sm"
           >
             {contadores.indisponivelOuManutencao}
           </span>
         </div>
 
-        <div className="relative z-10 text-[11px] text-white/95">
-          <span className="font-extrabold drop-shadow-2xs">Crítico</span>
+        <div className="font-nunito relative z-10 text-[11px] text-white/95">
+          <span className="font-black drop-shadow-2xs">Em estado crítico</span>
         </div>
       </div>
 
@@ -203,38 +200,39 @@ export function CardsMetricasAtivos({
           boxShadow:
             'inset 0 4px 14px rgba(255, 255, 255, 0.95), inset 0 -4px 10px rgba(0, 0, 0, 0.1), inset 4px 0 12px rgba(255, 255, 255, 0.75), inset -4px 0 12px rgba(255, 255, 255, 0.75), 0 12px 32px rgba(36, 107, 253, 0.3)',
         }}
-        className={`relative overflow-hidden rounded-[28px] px-6 py-5.5 transition-all duration-300 select-none flex flex-col justify-between min-h-[132px] border-0 ${
+        className={`relative overflow-hidden rounded-[34px] px-6 py-5.5 transition-all duration-300 select-none flex flex-col justify-between min-h-[132px] border-0 font-nunito ${
           clicavel ? 'cursor-pointer hover:scale-[1.02] active:scale-[0.98]' : ''
         } ${filtroStatus === 'todos' && salaSelecionada === 'todas' ? 'ring-4 ring-blue-300 ring-offset-2' : ''}`}
       >
-        <div className="absolute top-0 inset-x-0 h-3/5 bg-gradient-to-b from-white/40 via-white/10 to-transparent rounded-t-[28px] pointer-events-none" />
+        <div className="absolute top-0 inset-x-0 h-3/5 bg-gradient-to-b from-white/40 via-white/10 to-transparent rounded-t-[34px] pointer-events-none" />
 
-        <div className="relative z-10 flex items-start justify-between">
-          <span className="text-[10.5px] font-black uppercase tracking-wider text-white/95 drop-shadow-xs">
-            Salas
-          </span>
-          <div className="w-7 h-7 rounded-full bg-white/25 backdrop-blur-md border border-white/45 flex items-center justify-center text-white shadow-xs">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2.4} stroke="currentColor">
+        <div className="relative z-10 flex items-center gap-1.5">
+          {/* Ícone de Salas estilo translúcido com recorte */}
+          <div className="w-5 h-5 flex items-center justify-center shrink-0">
+            <svg className="w-4.5 h-4.5 drop-shadow-xs" viewBox="0 0 24 24" fill="rgba(255,255,255,0.4)">
               <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21"
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M3 2.25a.75.75 0 00-.75.75v18c0 .414.336.75.75.75h18a.75.75 0 00.75-.75V8.25a.75.75 0 00-.75-.75h-6V3a.75.75 0 00-.75-.75H3zm1.5 2.25h6.75V20.25H4.5V4.5zm8.25 4.5h6.75v11.25H12.75V9zm-6 1.5a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.5zm0 4.5a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.5zm8.25-1.5a.75.75 0 01.75-.75h1.5a.75.75 0 01.75.75v1.5a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75v-1.5z"
               />
             </svg>
           </div>
+          <span className="font-nunito text-[10.5px] font-black uppercase tracking-wider text-white/95 drop-shadow-xs">
+            Salas
+          </span>
         </div>
 
         <div className="relative z-10 my-1">
           <span
             style={{ fontFamily: "'Nunito', sans-serif" }}
-            className="text-[32px] sm:text-[36px] font-black tracking-tight leading-none text-white drop-shadow-sm"
+            className="font-nunito text-[32px] sm:text-[36px] font-black tracking-tight leading-none text-white drop-shadow-sm"
           >
             {totalSalasExibidas}
           </span>
         </div>
 
-        <div className="relative z-10 text-[11px] text-white/95">
-          <span className="font-extrabold drop-shadow-2xs">Mapeadas</span>
+        <div className="font-nunito relative z-10 text-[11px] text-white/95">
+          <span className="font-black drop-shadow-2xs">Mapeadas</span>
         </div>
       </div>
     </div>
